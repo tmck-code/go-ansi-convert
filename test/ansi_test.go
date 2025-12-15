@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/ansi-flip/src/ansi"
+	"github.com/tmck-code/go-ansi-flip/src/ansi"
 )
 
 func TestUnicodeStringLength(test *testing.T) {
