@@ -1,4 +1,4 @@
-module github.com/tmck-code/ansi-flip
+module github.com/tmck-code/go-ansi-flip
 
 go 1.25.5
 
