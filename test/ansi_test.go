@@ -9,6 +9,14 @@ import (
 	"github.com/tmck-code/go-ansi-flip/src/ansi"
 )
 
+func AddBorder(s string) string {
+	newS := ""
+	for _, line := range strings.Split(s, "\n") {
+		newS += line + "|\n"
+	}
+	return newS
+}
+
 func TestUnicodeStringLength(test *testing.T) {
 	msg := []string{
 		" ▄  █ ▄███▄   █    █    ████▄       ▄ ▄   ████▄ █▄▄▄▄ █     ██▄",   // 63
