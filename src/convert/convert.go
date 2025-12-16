@@ -1,4 +1,4 @@
-package ansi_flip
+package convert
 
 import (
 	"strings"

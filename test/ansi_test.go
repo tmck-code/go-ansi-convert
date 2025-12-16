@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-flip/src/ansi_flip"
+	"github.com/tmck-code/go-ansi-convert/src/convert"
 )
 
 func TestUnicodeStringLength(test *testing.T) {
@@ -109,7 +109,7 @@ func TestUnicodeStringLength(test *testing.T) {
 
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.UnicodeStringLength(tc.input)
+			result := convert.UnicodeStringLength(tc.input)
 			if result != tc.expected {
 				t.Errorf("UnicodeStringLength(%q) = %d; want %d", tc.input, result, tc.expected)
 			}
@@ -238,7 +238,7 @@ func TestSanitiseUnicodeString(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.SanitiseUnicodeString(tc.input, false)
+			result := convert.SanitiseUnicodeString(tc.input, false)
 			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
@@ -412,7 +412,7 @@ func TestSanitiseUnicodeStringWithJustify(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.SanitiseUnicodeString(tc.input, true)
+			result := convert.SanitiseUnicodeString(tc.input, true)
 			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
@@ -425,12 +425,12 @@ func TestUnicodeTokenise(test *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
-		expected [][]ansi_flip.ANSILineToken
+		expected [][]convert.ANSILineToken
 	}{
 		{
 			name:  "Single line with no colour",
 			input: "         ▄▄          ▄▄",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
 					{FG: "", BG: "", T: "         ▄▄          ▄▄"},
 				},
@@ -439,7 +439,7 @@ func TestUnicodeTokenise(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.TokeniseANSIString(tc.input)
+			result := convert.TokeniseANSIString(tc.input)
 			PrintANSITestResults(tc.input, tc.expected, result, t)
 			for i, line := range tc.expected {
 				Assert(line, result[i], t)
@@ -468,7 +468,7 @@ func TestUnicodeReverse(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.ReverseUnicodeString(tc.input)
+			result := convert.ReverseUnicodeString(tc.input)
 			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
@@ -479,16 +479,16 @@ func TestANSITokenise(test *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
-		expected [][]ansi_flip.ANSILineToken
+		expected [][]convert.ANSILineToken
 	}{
 		{
 			// purple fg, red bg
 			name:  "Single line with fg and bg",
 			input: "\x1b[38;5;129mAAA\x1b[48;5;160mXX",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{T: "AAA", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
-					ansi_flip.ANSILineToken{T: "XX", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
+					convert.ANSILineToken{T: "AAA", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
+					convert.ANSILineToken{T: "XX", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
 				},
 			},
 		},
@@ -496,10 +496,10 @@ func TestANSITokenise(test *testing.T) {
 			// purple fg, red bg
 			name:  "Longer single line with fg and bg",
 			input: "\x1b[38;5;129mAAA    \x1b[48;5;160m XX \x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{T: "AAA    ", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
-					ansi_flip.ANSILineToken{T: " XX ", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
+					convert.ANSILineToken{T: "AAA    ", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
+					convert.ANSILineToken{T: " XX ", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
 				},
 			},
 		},
@@ -507,14 +507,14 @@ func TestANSITokenise(test *testing.T) {
 			name: "Multi-line",
 			// line 1 : purple fg,                  line 2: red bg
 			input: "\x1b[38;5;160m▄\x1b[38;5;46m▄\n▄\x1b[38;5;190m▄",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{ // Line 1
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
 				},
 				{ // Line 2
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;190m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;190m", BG: "", T: "▄"},
 				},
 			},
 		},
@@ -522,20 +522,20 @@ func TestANSITokenise(test *testing.T) {
 		{
 			name:  "Single line with spaces",
 			input: "\x1b[38;5;129mAAA  \x1b[48;5;160m  XX  \x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{T: "AAA  ", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
-					ansi_flip.ANSILineToken{T: "  XX  ", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
+					convert.ANSILineToken{T: "AAA  ", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
+					convert.ANSILineToken{T: "  XX  ", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
 				},
 			},
 		},
 		{
 			name:  "Single line with existing ANSI reset",
 			input: "\x1b[38;5;129mAAA\x1b[48;5;160mXX\x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{T: "AAA", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
-					ansi_flip.ANSILineToken{T: "XX", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
+					convert.ANSILineToken{T: "AAA", FG: "\x1b[38;5;129m", BG: "\x1b[49m"},
+					convert.ANSILineToken{T: "XX", FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m"},
 				},
 			},
 		},
@@ -543,24 +543,24 @@ func TestANSITokenise(test *testing.T) {
 			name: "Top of Egg",
 			input: "    \x1b[49m   \x1b[38;5;16m▄▄\x1b[48;5;16m\x1b[38;5;142m▄▄▄\x1b[49m\x1b[38;5;16m▄▄\n" +
 				"     ▄\x1b[48;5;16m\x1b[38;5;58m▄\x1b[48;5;58m\x1b[38;5;70m▄\x1b[48;5;70m \x1b[48;5;227m    \x1b[48;5;237m\x1b[38;5;227m▄\x1b[48;5;16m\x1b[38;5;237m▄\x1b[49m\x1b[38;5;16m▄",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: "    "},
-					ansi_flip.ANSILineToken{FG: "", BG: "\x1b[49m", T: "   "},
+					convert.ANSILineToken{FG: "", BG: "", T: "    "},
+					convert.ANSILineToken{FG: "", BG: "\x1b[49m", T: "   "},
 
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;142m", BG: "\u001b[48;5;16m", T: "▄▄▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;142m", BG: "\u001b[48;5;16m", T: "▄▄▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
 				},
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "     ▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;58m", BG: "\u001b[48;5;16m", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;58m", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;70m", T: " "},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;227m", T: "    "},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;237m", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;237m", BG: "\u001b[48;5;16m", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\u001b[49m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "     ▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;58m", BG: "\u001b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;58m", T: "▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;70m", T: " "},
+					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;227m", T: "    "},
+					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;237m", T: "▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;237m", BG: "\u001b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\u001b[49m", T: "▄"},
 				},
 			},
 		},
@@ -571,12 +571,12 @@ func TestANSITokenise(test *testing.T) {
 			input: "  \x1b[38;5;129mAAA \x1b[48;5;160m XY \x1b[0m     ",
 			// The AAA should still have a purple fg
 			// The XX should still have a red bg
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: "  "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XY "},
-					ansi_flip.ANSILineToken{FG: "\x1b[0m", BG: "", T: "     "},
+					convert.ANSILineToken{FG: "", BG: "", T: "  "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XY "},
+					convert.ANSILineToken{FG: "\x1b[0m", BG: "", T: "     "},
 				},
 			},
 		},
@@ -586,10 +586,10 @@ func TestANSITokenise(test *testing.T) {
 			// the 4 spaces after AAA should have a purple fg, and no bg
 			input: "\x1b[38;5;129mAAA    \x1b[48;5;160m XX \x1b[0m",
 			// expected := "\x1b[0m\x1b[48;5;160m\x1b[38;5;129m XX \x1b[38;5;129m\x1b[49m    AAA\x1b[0m"
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA    "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA    "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
 				},
 			},
 		},
@@ -599,61 +599,61 @@ func TestANSITokenise(test *testing.T) {
 			// the 4 spaces after AAA should have a purple fg, and no bg
 			input: "\x1b[38;5;129mAAA    \x1b[48;5;160m XX \x1b[0m",
 			// expected := "\x1b[0m\x1b[48;5;160m\x1b[38;5;129m XX \x1b[38;5;129m\x1b[49m    AAA\x1b[0m"
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA    "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA    "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
 				},
 			},
 		},
 		{
 			name:  "Reset followed by new color on same line",
 			input: "\x1b[38;5;129mText\x1b[0m\x1b[38;5;160mMore",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Text"},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "More"},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Text"},
+					convert.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "More"},
 				},
 			},
 		},
 		{
 			name:  "Multi-line where line 1 ends with reset",
 			input: "\x1b[38;5;129mLine 1\x1b[0m\nLine 2",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
 				},
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: "Line 2"},
+					convert.ANSILineToken{FG: "", BG: "", T: "Line 2"},
 				},
 			},
 		},
 		{
 			name:  "Multi-line where line 1 ends with reset and line 2 has color",
 			input: "\x1b[38;5;129mLine 1\x1b[0m\n\x1b[38;5;160mLine 2",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
 				},
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "Line 2"},
+					convert.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "Line 2"},
 				},
 			},
 		},
 		{
 			name:  "Reset clears both FG and BG colors",
 			input: "\x1b[38;5;129m\x1b[48;5;160mColored\x1b[0mPlain",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: "Colored"},
-					ansi_flip.ANSILineToken{FG: "\x1b[0m", BG: "", T: "Plain"},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: "Colored"},
+					convert.ANSILineToken{FG: "\x1b[0m", BG: "", T: "Plain"},
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.TokeniseANSIString(tc.input)
+			result := convert.TokeniseANSIString(tc.input)
 			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})
@@ -670,14 +670,14 @@ func TestReverseANSIString(test *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
-		expected [][]ansi_flip.ANSILineToken
+		expected [][]convert.ANSILineToken
 	}{
 		{
 			name: "Single line with ANSI colours",
 			// The AAA has a purple fg, and the XX has a red bg
 			input: "\x1b[38;5;129mAAA \x1b[48;5;160m XX \x1b[0m",
 			// expected: "\x1b[0m\x1b[38;5;129m\x1b[48;5;160m XX \x1b[49m AAA\x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
 					{"", "", ""},
 					{"\x1b[38;5;129m", "\x1b[48;5;160m", " XX "},
@@ -691,7 +691,7 @@ func TestReverseANSIString(test *testing.T) {
 			// the 4 spaces after AAA should have a purple fg, and no bg
 			input: "\x1b[38;5;129mAAA    \x1b[48;5;160m XX \x1b[0m",
 			// expected: "\x1b[0m\x1b[38;5;129m\x1b[48;5;160m XX \x1b[0m\x1b[38;5;129m    AAA\x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
 					{FG: "", BG: "", T: ""},
 					{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
@@ -704,13 +704,13 @@ func TestReverseANSIString(test *testing.T) {
 			// The AAA has a purple fg, the XX has a red bg
 			input: "  \x1b[38;5;129mAAA \x1b[48;5;160m XY \x1b[0m  ",
 			// The AAA should still have a purple fg, and the XX should still have a red bg
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: ""},
-					ansi_flip.ANSILineToken{FG: "\x1b[0m", BG: "", T: "  "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " YX "},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: " AAA"},
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: "  "},
+					convert.ANSILineToken{FG: "", BG: "", T: ""},
+					convert.ANSILineToken{FG: "\x1b[0m", BG: "", T: "  "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " YX "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: " AAA"},
+					convert.ANSILineToken{FG: "", BG: "", T: "  "},
 				},
 			},
 		},
@@ -718,16 +718,16 @@ func TestReverseANSIString(test *testing.T) {
 			name:  "Multi-line with colour continuation",
 			input: "\x1b[38;5;160m▄ \x1b[38;5;46m▄\n▄ \x1b[38;5;190m▄",
 			// expected: "\x1b[0m\x1b[38;5;46m▄\x1b[38;5;160m ▄\n\x1b[38;5;190m▄\x1b[38;5;46m ▄\x1b[0m",
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: ""},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: " ▄"},
+					convert.ANSILineToken{FG: "", BG: "", T: ""},
+					convert.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: " ▄"},
 				},
 				{
-					ansi_flip.ANSILineToken{FG: "", BG: "", T: ""},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;190m", BG: "", T: "▄"},
-					ansi_flip.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: " ▄"},
+					convert.ANSILineToken{FG: "", BG: "", T: ""},
+					convert.ANSILineToken{FG: "\x1b[38;5;190m", BG: "", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;46m", BG: "", T: " ▄"},
 				},
 			},
 		},
@@ -752,7 +752,7 @@ func TestReverseANSIString(test *testing.T) {
 				},
 				"\n",
 			),
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{{"", "", "  "}, {"", "", "▄▄          ▄▄         "}},
 				{{"", "", ""}, {"", "", "▄▄ ▄▄▄▄▄▄     ▄▄▄        "}},
 				{{"", "", ""}, {"", "", "▀▄   ▄▄  ▄▄▄ ▀▄  ▄       "}},
@@ -782,7 +782,7 @@ func TestReverseANSIString(test *testing.T) {
 				},
 				"\n",
 			),
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{{"", "", "  "}, {"\x1b[38;5;16m", "\x1b[49m", "▄▄"}, {"\x1b[38;5;232m", "\x1b[49m", "         "}, {"\x1b[38;5;232m", "\x1b[48;5;16m", " ▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄"}, {"", "\x1b[49m", "     "}, {"", "", "    "}},
 				{{"", "", ""}, {"\x1b[38;5;16m", "\x1b[49m", "▄"}, {"\x1b[38;5;94m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;94m", "\x1b[48;5;94m", " "}, {"\x1b[38;5;94m", "\x1b[48;5;214m", "▄"}, {"\x1b[38;5;214m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄▄▄▄"}, {"\x1b[38;5;94m", "\x1b[49m", "    "}, {"\x1b[38;5;94m", "\x1b[48;5;16m", " "}, {"\x1b[38;5;94m", "\x1b[48;5;232m", "▄"}, {"\x1b[38;5;94m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄        "}},
 				{{"", "", ""}, {"\x1b[38;5;16m", "\x1b[49m", "▀"}, {"\x1b[38;5;16m", "\x1b[48;5;94m", "▄"}, {"\x1b[38;5;94m", "\x1b[48;5;94m", "   "}, {"\x1b[38;5;94m", "\x1b[48;5;214m", "▄"}, {"\x1b[38;5;94m", "\x1b[48;5;232m", "▄"}, {"\x1b[38;5;214m", "\x1b[48;5;232m", "  "}, {"\x1b[38;5;214m", "\x1b[48;5;16m", "▄▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄ ▀"}, {"\x1b[38;5;16m", "\x1b[48;5;58m", "▄"}, {"\x1b[38;5;16m", "\x1b[48;5;94m", " "}, {"\x1b[38;5;16m", "\x1b[48;5;16m", " "}, {"\x1b[38;5;16m", "\x1b[49m", "▄       "}},
@@ -809,7 +809,7 @@ func TestReverseANSIString(test *testing.T) {
 				},
 				"\n",
 			),
-			expected: [][]ansi_flip.ANSILineToken{
+			expected: [][]convert.ANSILineToken{
 				{{"", "", "   "}, {"\x1b[38;5;16m", "\x1b[49m", "▄▄"}, {"\x1b[38;5;142m", "\x1b[48;5;16m", "▄▄▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄▄"}, {"", "\x1b[49m", "   "}, {"", "", "     "}},
 				{{"", "", " "}, {"\x1b[38;5;16m", "\x1b[49m", "▄"}, {"\x1b[38;5;237m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;227m", "\x1b[48;5;237m", "▄"}, {"\x1b[38;5;70m", "\x1b[48;5;227m", "    "}, {"\x1b[38;5;70m", "\x1b[48;5;70m", " "}, {"\x1b[38;5;70m", "\x1b[48;5;58m", "▄"}, {"\x1b[38;5;58m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄      "}},
 				{{"", "", ""}, {"\x1b[38;5;16m", "\x1b[49m", "▄"}, {"\x1b[38;5;237m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;70m", "\x1b[48;5;142m", " "}, {"\x1b[38;5;70m", "\x1b[48;5;227m", "▄▄"}, {"\x1b[38;5;227m", "\x1b[48;5;227m", "    "}, {"\x1b[38;5;227m", "\x1b[48;5;70m", "▄▄"}, {"\x1b[38;5;237m", "\x1b[48;5;16m", "▄"}, {"\x1b[38;5;16m", "\x1b[49m", "▄     "}},
@@ -822,7 +822,7 @@ func TestReverseANSIString(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.ReverseANSIString(ansi_flip.TokeniseANSIString(tc.input))
+			result := convert.ReverseANSIString(convert.TokeniseANSIString(tc.input))
 			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})

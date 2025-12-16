@@ -1,4 +1,4 @@
-module github.com/tmck-code/go-ansi-flip
+module github.com/tmck-code/go-ansi-convert
 
 go 1.25.5
 

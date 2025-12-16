@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tmck-code/go-ansi-flip/src/ansi_flip"
+	"github.com/tmck-code/go-ansi-convert/src/convert"
 )
 
 func main() {
@@ -52,9 +52,9 @@ func runFlip() {
 	outputFile := os.Args[3]
 
 	input := readFile(inputFile)
-	tokenized := ansi_flip.TokeniseANSIString(input)
-	reversed := ansi_flip.ReverseANSIString(tokenized)
-	output := ansi_flip.BuildANSIString(reversed, 0)
+	tokenized := convert.TokeniseANSIString(input)
+	reversed := convert.ReverseANSIString(tokenized)
+	output := convert.BuildANSIString(reversed, 0)
 	writeFile(outputFile, output)
 }
 
@@ -77,7 +77,7 @@ func runSanitise() {
 	outputFile := args[1]
 
 	input := readFile(inputFile)
-	output := ansi_flip.SanitiseUnicodeString(input, *justify)
+	output := convert.SanitiseUnicodeString(input, *justify)
 	writeFile(outputFile, output)
 }
 

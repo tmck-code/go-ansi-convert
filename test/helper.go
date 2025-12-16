@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-flip/src/ansi_flip"
+	"github.com/tmck-code/go-ansi-convert/src/convert"
 )
 
 var (
@@ -71,14 +71,14 @@ func FlattenJSON(json string) string {
 func AddBorder(s string, pad bool) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
 
-	maxLen := ansi_flip.LongestUnicodeLineLength(lines)
+	maxLen := convert.LongestUnicodeLineLength(lines)
 
 	result := make([]string, len(lines)+2)
 	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
 
 	for i, line := range lines {
 		if pad {
-			visualLen := ansi_flip.UnicodeStringLength(line)
+			visualLen := convert.UnicodeStringLength(line)
 			padding := strings.Repeat(" ", maxLen-visualLen)
 			result[i+1] = "│" + line + padding + "│"
 		} else {
@@ -112,10 +112,10 @@ func PrintSimpleTestResults(input string, expected string, result string) {
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
-func PrintANSITestResults(input string, expected, result [][]ansi_flip.ANSILineToken, test *testing.T) {
+func PrintANSITestResults(input string, expected, result [][]convert.ANSILineToken, test *testing.T) {
 	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(ansi_flip.BuildANSIString(expected, 0), false))
-	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(ansi_flip.BuildANSIString(result, 0), false))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
+	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
 
 	if Debug() {
 		for i, line := range expected {

@@ -7,6 +7,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     - name: Build Docker image
-      run: docker build -t go-ansi-flip-test -f test/Dockerfile .  
+      run: docker build -t go-ansi-convert-test -f test/Dockerfile .
     - name: Run tests in Docker
-      run: docker run --rm go-ansi-flip-test go test -v ./test/...
+      run: docker run --rm go-ansi-convert-test go test -v ./test/...
