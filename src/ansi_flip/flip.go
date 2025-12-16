@@ -244,16 +244,20 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 }
 
 func BuildANSIString(lines [][]ANSILineToken, padding int) string {
-	s := ""
+	var builder strings.Builder
+	builder.Grow(500000) // Preallocate for large output
 
+	paddingStr := strings.Repeat(" ", padding)
 	for _, tokens := range lines {
-		s += strings.Repeat(" ", padding) // add padding to the left
+		builder.WriteString(paddingStr) // add padding to the left
 		for _, token := range tokens {
-			s += token.FG + token.BG + token.T
+			builder.WriteString(token.FG)
+			builder.WriteString(token.BG)
+			builder.WriteString(token.T)
 		}
-		s += "\x1b[0m\n"
+		builder.WriteString("\x1b[0m\n")
 	}
-	return s
+	return builder.String()
 }
 
 func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
