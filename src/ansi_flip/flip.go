@@ -152,7 +152,62 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 				colour += string(ch)
 				if ch == 'm' {
 					isColour = false
-					if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
+					// Check for 256-color or true color codes first (contains ;5; or ;2;)
+					if strings.Contains(colour, ";5;") || strings.Contains(colour, ";2;") {
+						// 256-color or true color format
+						if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
+							fg = colour
+							isReset = false
+						} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
+							bg = colour
+							isReset = false
+						}
+					} else if strings.Contains(colour, ";") {
+						// Check if this is a combined code with both FG and BG (e.g., [0;31;40m])
+						parts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(colour, "m"), "\x1b["), ";")
+						hasFG := false
+						hasBG := false
+						fgCode := ""
+						bgCode := ""
+						hasReset := false
+
+						for _, part := range parts {
+							if part == "0" {
+								hasReset = true
+							} else if len(part) >= 2 {
+								// Check for FG codes (30-37, 90-97)
+								if (part[0] == '3' && part[1] >= '0' && part[1] <= '7') ||
+									(part[0] == '9' && part[1] >= '0' && part[1] <= '7') {
+									hasFG = true
+									fgCode = part
+								}
+								// Check for BG codes (40-47, 100-107)
+								if (part[0] == '4' && part[1] >= '0' && part[1] <= '7') ||
+									(len(part) == 3 && part[0] == '1' && part[1] == '0' && part[2] >= '0' && part[2] <= '7') {
+									hasBG = true
+									bgCode = part
+								}
+							}
+						}
+
+						// If it has both FG and BG codes, split them into separate codes
+						if hasFG && hasBG {
+							fg = "\x1b[" + fgCode + "m"
+							bg = "\x1b[" + bgCode + "m"
+							isReset = false
+						} else if hasFG {
+							fg = colour
+							isReset = false
+						} else if hasBG {
+							bg = colour
+							isReset = false
+						} else if hasReset {
+							isReset = true
+							fg = ""
+							bg = ""
+							colour = ""
+						}
+					} else if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
 						fg = colour
 						isReset = false
 					} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
