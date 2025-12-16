@@ -1,21 +1,11 @@
 package test
 
 import (
-	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/tmck-code/go-ansi-flip/src/ansi_flip"
 )
-
-func AddBorder(s string) string {
-	newS := ""
-	for _, line := range strings.Split(s, "\n") {
-		newS += line + "|\n"
-	}
-	return newS
-}
 
 func TestUnicodeStringLength(test *testing.T) {
 	msg := []string{
@@ -55,11 +45,7 @@ func TestUnicodeTokenise(test *testing.T) {
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
 			result := ansi_flip.TokeniseANSIString(tc.input)
-			if Debug() {
-				fmt.Printf("input: 	  '%v\x1b[0m'\n", tc.input)
-				fmt.Printf("expected: '%v\x1b[0m'\n", tc.expected)
-				fmt.Printf("result:   '%v\x1b[0m'\n", result)
-			}
+			PrintSimpleTestResults(tc.input, tc.expected, result)
 			for i, line := range tc.expected {
 				Assert(line, result[i], t)
 			}
@@ -88,11 +74,7 @@ func TestUnicodeReverse(test *testing.T) {
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
 			result := ansi_flip.ReverseUnicodeString(tc.input)
-			if Debug() {
-				fmt.Printf("input: 	  '%v\x1b[0m'\n", tc.input)
-				fmt.Printf("expected: '%v\x1b[0m'\n", tc.expected)
-				fmt.Printf("result:   '%v\x1b[0m'\n", result)
-			}
+			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
 	}
@@ -233,34 +215,7 @@ func TestANSITokenise(test *testing.T) {
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
 			result := ansi_flip.TokeniseANSIString(tc.input)
-
-			fmt.Printf("input: 	  '\n%s\x1b[0m'\n", AddBorder(tc.input))
-			fmt.Printf("expected:   '\n%s\x1b[0m'\n", AddBorder(ansi_flip.BuildANSIString(tc.expected, 4)))
-			fmt.Printf("result:   '\n%s\n", AddBorder(ansi_flip.BuildANSIString(result, 4)))
-
-			for i, line := range tc.expected {
-				if Debug() {
-					fmt.Printf("expected: %+v\x1b[0m\n", line)
-					fmt.Printf("  result: %+v\x1b[0m\n", result[i])
-					rb, err := json.MarshalIndent(result[i], "", "  ")
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					fmt.Printf("  result: %+v\x1b[0m\n", string(rb))
-					eb, err := json.MarshalIndent(line, "", "  ")
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					fmt.Printf("expected: %+v\x1b[0m\n", string(eb))
-					for j, token := range result[i] {
-						Assert(line[j], token, t)
-						if (j + 1) < len(line) {
-							break
-						}
-					}
-					Assert(line, result[i], t)
-				}
-			}
+			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})
 	}
@@ -429,34 +384,7 @@ func TestReverseANSIString(test *testing.T) {
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
 			result := ansi_flip.ReverseANSIString(ansi_flip.TokeniseANSIString(tc.input))
-
-			fmt.Printf("input: 	  '\n%s\x1b[0m'\n", AddBorder(tc.input))
-			fmt.Printf("expected:   '\n%s\n", AddBorder(ansi_flip.BuildANSIString(tc.expected, 4)))
-			fmt.Printf("result:   '\n%s\n", AddBorder(ansi_flip.BuildANSIString(result, 4)))
-			for i, line := range tc.expected {
-				if Debug() {
-					fmt.Printf("expected: %+v\x1b[0m\n", line)
-					fmt.Printf("  result: %+v\x1b[0m\n", result[i])
-
-					eb, err := json.MarshalIndent(line, "", "  ")
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					fmt.Printf("expected: %+v\x1b[0m\n", string(eb))
-					rb, err := json.MarshalIndent(result[i], "", "  ")
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					fmt.Printf("  result: %+v\x1b[0m\n", string(rb))
-					for j, token := range result[i] {
-						Assert(line[j], token, t)
-						if (j + 1) < len(line) {
-							break
-						}
-					}
-					Assert(line, result[i], t)
-				}
-			}
+			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})
 	}

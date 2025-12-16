@@ -1,11 +1,14 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/tmck-code/go-ansi-flip/src/ansi_flip"
 )
 
 var (
@@ -62,4 +65,89 @@ func FlattenJSON(json string) string {
 	json = strings.Replace(json, "\t", "", -1)
 	json = strings.Replace(json, " ", "", -1)
 	return json
+}
+
+// AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
+func AddBorder(s string, unicodeStringLengthFunc func(string) int) string {
+	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
+
+	// Find the maximum visual line length
+	maxLen := 0
+	for _, line := range lines {
+		visualLen := unicodeStringLengthFunc(line)
+		if visualLen > maxLen {
+			maxLen = visualLen
+		}
+	}
+
+	result := make([]string, len(lines)+2)
+	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
+
+	for i, line := range lines {
+		visualLen := unicodeStringLengthFunc(line)
+		padding := strings.Repeat(" ", maxLen-visualLen)
+		result[i+1] = "│" + line + padding + "│"
+	}
+	result[len(result)-1] = "╰" + strings.Repeat("─", maxLen) + "╯"
+	return strings.Join(result, "\n") + "\n"
+}
+
+// TestTitleInput returns the formatted title string for "input" test sections.
+func TestTitleInput() string {
+	return "\x1b[44;30;1;3m ▶ input \x1b[0m\x1b[34m🭍🭑🬽\x1b[0m"
+}
+
+// TestTitleExpected returns the formatted title string for "expected" test sections.
+func TestTitleExpected() string {
+	return "\x1b[42;30;1;3m ✓ expected \x1b[0m\x1b[32m🭍🭑🬽\x1b[0m"
+}
+
+// TestTitleResult returns the formatted title string for "result" test sections.
+func TestTitleResult() string {
+	return "\x1b[43;30;1;3m ✭ result \x1b[0m\x1b[33m🭍🭑🬽\x1b[0m"
+}
+
+// PrintSimpleTestResults prints formatted test results for simple tests (with quoted output).
+func PrintSimpleTestResults(input string, expected interface{}, result interface{}) {
+	if Debug() {
+		fmt.Printf("%s \t  '%v\x1b[0m'\n", TestTitleInput(), input)
+		fmt.Printf("%s '%v\x1b[0m'\n", TestTitleExpected(), expected)
+		fmt.Printf("%s   '%v\x1b[0m'\n", TestTitleResult(), result)
+	}
+}
+
+// PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
+func PrintANSITestResults(input string, expected, result [][]ansi_flip.ANSILineToken, test *testing.T) {
+	addBorder := func(s string) string {
+		return AddBorder(s, ansi_flip.UnicodeStringLength)
+	}
+
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), addBorder(input))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), addBorder(ansi_flip.BuildANSIString(expected, 0)))
+	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), addBorder(ansi_flip.BuildANSIString(result, 0)))
+
+	if Debug() {
+		for i, line := range expected {
+			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), line)
+			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), result[i])
+
+			eb, err := json.MarshalIndent(line, "", "  ")
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), string(eb))
+			rb, err := json.MarshalIndent(result[i], "", "  ")
+			if err != nil {
+				fmt.Println("error:", err)
+			}
+			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
+			for j, token := range result[i] {
+				Assert(line[j], token, test)
+				if (j + 1) < len(line) {
+					break
+				}
+			}
+			Assert(line, result[i], test)
+		}
+	}
 }
