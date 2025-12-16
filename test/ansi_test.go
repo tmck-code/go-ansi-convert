@@ -279,6 +279,50 @@ func TestANSITokenise(test *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "Reset followed by new color on same line",
+			input: "\x1b[38;5;129mText\x1b[0m\x1b[38;5;160mMore",
+			expected: [][]ansi_flip.ANSILineToken{
+				{
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Text"},
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "More"},
+				},
+			},
+		},
+		{
+			name:  "Multi-line where line 1 ends with reset",
+			input: "\x1b[38;5;129mLine 1\x1b[0m\nLine 2",
+			expected: [][]ansi_flip.ANSILineToken{
+				{
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
+				},
+				{
+					ansi_flip.ANSILineToken{FG: "", BG: "", T: "Line 2"},
+				},
+			},
+		},
+		{
+			name:  "Multi-line where line 1 ends with reset and line 2 has color",
+			input: "\x1b[38;5;129mLine 1\x1b[0m\n\x1b[38;5;160mLine 2",
+			expected: [][]ansi_flip.ANSILineToken{
+				{
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "", T: "Line 1"},
+				},
+				{
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;160m", BG: "", T: "Line 2"},
+				},
+			},
+		},
+		{
+			name:  "Reset clears both FG and BG colors",
+			input: "\x1b[38;5;129m\x1b[48;5;160mColored\x1b[0mPlain",
+			expected: [][]ansi_flip.ANSILineToken{
+				{
+					ansi_flip.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: "Colored"},
+					ansi_flip.ANSILineToken{FG: "\x1b[0m", BG: "", T: "Plain"},
+				},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {

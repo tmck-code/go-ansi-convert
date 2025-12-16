@@ -107,6 +107,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 		tokens := make([]ANSILineToken, 0)
 		text := ""
 		colour := ""
+		isReset = false // Clear reset state at start of each line
 
 		for _, ch := range line {
 			// start of colour sequence detected!
@@ -139,10 +140,14 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					isColour = false
 					if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
 						fg = colour
+						isReset = false
 					} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
 						bg = colour
+						isReset = false
 					} else if strings.Contains(colour, "[0m") {
 						isReset = true
+						fg = ""
+						bg = ""
 						colour = ""
 					}
 				}
