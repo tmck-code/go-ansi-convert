@@ -1,0 +1,12 @@
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Build Docker image
+      run: docker build -t go-ansi-convert-test -f test/Dockerfile .
+    - name: Run tests in Docker
+      run: docker run --rm go-ansi-convert-test go test -v ./test/...
