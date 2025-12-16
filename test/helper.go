@@ -71,14 +71,7 @@ func FlattenJSON(json string) string {
 func AddBorder(s string, unicodeStringLengthFunc func(string) int) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
 
-	// Find the maximum visual line length
-	maxLen := 0
-	for _, line := range lines {
-		visualLen := unicodeStringLengthFunc(line)
-		if visualLen > maxLen {
-			maxLen = visualLen
-		}
-	}
+	maxLen := ansi_flip.LongestUnicodeLineLength(lines)
 
 	result := make([]string, len(lines)+2)
 	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
