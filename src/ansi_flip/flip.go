@@ -36,6 +36,49 @@ func UnicodeStringLength(s string) int {
 	return totalLen
 }
 
+func LongestUnicodeLineLength(lines []string) int {
+	maxLen := 0
+	for _, line := range lines {
+		length := UnicodeStringLength(line)
+		if length > maxLen {
+			maxLen = length
+		}
+	}
+	return maxLen
+}
+
+func SanitiseUnicodeString(s string) string {
+	if s == "" {
+		return s
+	}
+
+	tokenizedLines := TokeniseANSIString(s)
+	if len(tokenizedLines) == 0 {
+		return s
+	}
+
+	result := make([]string, 0, len(tokenizedLines))
+
+	for _, tokens := range tokenizedLines {
+		lineStr := ""
+		for _, token := range tokens {
+			lineStr += token.FG + token.BG + token.T
+		}
+		// Check if the last token has a reset
+		hasReset := false
+		if len(tokens) > 0 {
+			lastToken := tokens[len(tokens)-1]
+			hasReset = lastToken.FG == "\x1b[0m"
+		}
+		// Ensure line ends with reset if not already present
+		if !hasReset {
+			lineStr += "\x1b[0m"
+		}
+		result = append(result, lineStr)
+	}
+	return strings.Join(result, "\n")
+}
+
 func ReverseUnicodeString(s string) string {
 	runes := []rune(s)
 	reversed := make([]rune, len(runes))

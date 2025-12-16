@@ -24,6 +24,74 @@ func TestUnicodeStringLength(test *testing.T) {
 	Assert(expected, results, test)
 }
 
+// Test ANSI sanitisation ------------------------------------------------------
+
+func TestSanitiseUnicodeString(test *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Single line without ANSI codes",
+			input:    "Hello World",
+			expected: "Hello World\x1b[0m",
+		},
+		{
+			name:     "Single line with ANSI but no reset",
+			input:    "\x1b[38;5;129mColored text",
+			expected: "\x1b[38;5;129mColored text\x1b[0m",
+		},
+		{
+			name:     "Single line with ANSI and existing reset",
+			input:    "\x1b[38;5;129mColored text\x1b[0m",
+			expected: "\x1b[38;5;129mColored text\x1b[0m",
+		},
+		{
+			name:     "Multi-line without ANSI codes",
+			input:    "Line 1\nLine 2",
+			expected: "Line 1\x1b[0m\nLine 2\x1b[0m",
+		},
+		{
+			name:     "Multi-line with ANSI codes",
+			input:    "\x1b[38;5;129mLine 1\nLine 2",
+			expected: "\x1b[38;5;129mLine 1\x1b[0m\n\x1b[38;5;129mLine 2\x1b[0m",
+		},
+		{
+			name:     "Multi-line with FG and BG colors",
+			input:    "\x1b[38;5;129m\x1b[48;5;160mLine 1\nLine 2",
+			expected: "\x1b[38;5;129m\x1b[48;5;160mLine 1\x1b[0m\n\x1b[38;5;129m\x1b[48;5;160mLine 2\x1b[0m",
+		},
+		{
+			name:     "Line with reset followed by color",
+			input:    "\x1b[38;5;129mText\x1b[0m\x1b[38;5;160mMore",
+			expected: "\x1b[38;5;129mText\x1b[38;5;160mMore\x1b[0m",
+		},
+		{
+			name:     "Multi-line with reset in middle",
+			input:    "\x1b[38;5;129mLine 1\x1b[0m\nLine 2",
+			expected: "\x1b[38;5;129mLine 1\x1b[0m\nLine 2\x1b[0m",
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Multi-line with color continuation and reset",
+			input:    "\x1b[38;5;160m▄\x1b[38;5;46m▄\n▄\x1b[38;5;190m▄",
+			expected: "\x1b[38;5;160m▄\x1b[38;5;46m▄\x1b[0m\n\x1b[38;5;46m▄\x1b[38;5;190m▄\x1b[0m",
+		},
+	}
+	for _, tc := range testCases {
+		test.Run(tc.name, func(t *testing.T) {
+			result := ansi_flip.SanitiseUnicodeString(tc.input)
+			PrintSimpleTestResults(tc.input, tc.expected, result)
+			Assert(tc.expected, result, t)
+		})
+	}
+}
+
 // Test ANSI tokenisation ------------------------------------------------------
 
 func TestUnicodeTokenise(test *testing.T) {
