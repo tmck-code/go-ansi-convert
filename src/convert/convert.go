@@ -6,7 +6,10 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-// Returns the length of a string, taking into account Unicode characters and ANSI escape codes.
+// UnicodeStringLength calculates the display length of a string, accounting for:
+// - Unicode characters that are double-width (e.g., CJK characters, emojis)
+// - ANSI escape codes (which don't contribute to display width)
+// Returns the total display width of the string.
 func UnicodeStringLength(s string) int {
 	nRunes, totalLen, ansiCode := len(s), 0, false
 
@@ -36,6 +39,8 @@ func UnicodeStringLength(s string) int {
 	return totalLen
 }
 
+// LongestUnicodeLineLength finds the maximum display length among all lines.
+// It uses UnicodeStringLength to properly measure each line's width.
 func LongestUnicodeLineLength(lines []string) int {
 	maxLen := 0
 	for _, line := range lines {
@@ -47,6 +52,8 @@ func LongestUnicodeLineLength(lines []string) int {
 	return maxLen
 }
 
+// SanitiseUnicodeString cleans up ANSI codes in a string and optionally justifies lines.
+// It ensures all lines end with a reset code and pads lines to equal width if justifyLines is true.
 func SanitiseUnicodeString(s string, justifyLines bool) string {
 	if s == "" {
 		return s
@@ -93,6 +100,8 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 	return strings.Join(result, "\n")
 }
 
+// ReverseUnicodeString reverses the order of characters in a string.
+// It works on a rune-by-rune basis to properly handle multi-byte Unicode characters.
 func ReverseUnicodeString(s string) string {
 	runes := []rune(s)
 	reversed := make([]rune, len(runes))
@@ -103,13 +112,20 @@ func ReverseUnicodeString(s string) string {
 	return string(reversed)
 }
 
+// ANSILineToken represents a segment of text with its associated ANSI formatting.
+// - FG is the foreground color code
+// - BG is the background color code, and
+// - T is the text content.
 type ANSILineToken struct {
 	FG string
 	BG string
 	T  string
-	// Reset    bool
 }
 
+// TokeniseANSIString parses a string containing ANSI escape codes into structured tokens.
+// It splits the input by lines and then tokenizes each line, extracting foreground/background
+// colors and text segments.
+// Returns a 2D slice where each inner slice represents tokens for one line.
 func TokeniseANSIString(msg string) [][]ANSILineToken {
 	isColour := false
 	isReset := false
@@ -163,7 +179,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 							isReset = false
 						}
 					} else if strings.Contains(colour, ";") {
-						// Check if this is a combined code with both FG and BG (e.g., [0;31;40m])
+						// Check if this is a combined code with both FG and BG (e.g., \x1b[0;31;40m)
 						parts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(colour, "m"), "\x1b["), ";")
 						hasFG := false
 						hasBG := false
@@ -229,8 +245,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
 				isReset = false
 			} else {
-				// if we are setting a bg colour, but the last token didn't have one
-				// then add a background clear to the previous bg
+				// If we are setting a bg colour, but the last token didn't have one
+				// then add a background clear to the previous bg.
+				// This makes it less of a nightmare to flip horizontally if required.
 				if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" {
 					prevToken := tokens[len(tokens)-1]
 					tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.T}
@@ -243,6 +260,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 	return lines
 }
 
+// BuildANSIString reconstructs an ANSI-formatted string from tokenized lines.
+// It adds the specified padding (spaces) to the left of each line and ensures each line
+// ends with a reset code.
 func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 	var builder strings.Builder
 	builder.Grow(500000) // Preallocate for large output
@@ -260,6 +280,9 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 	return builder.String()
 }
 
+// ReverseANSIString horizontally flips tokenized ANSI lines while preserving formatting.
+// It reverses the order of tokens on each line and the characters within each token's text.
+// All lines are padded on the left to maintain vertical alignment based on the widest line.
 func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
 	linesRev := make([][]ANSILineToken, len(lines))
 
