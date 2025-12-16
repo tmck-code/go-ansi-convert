@@ -68,7 +68,7 @@ func FlattenJSON(json string) string {
 }
 
 // AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
-func AddBorder(s string) string {
+func AddBorder(s string, pad bool) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
 
 	maxLen := ansi_flip.LongestUnicodeLineLength(lines)
@@ -77,9 +77,13 @@ func AddBorder(s string) string {
 	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
 
 	for i, line := range lines {
-		visualLen := ansi_flip.UnicodeStringLength(line)
-		padding := strings.Repeat(" ", maxLen-visualLen)
-		result[i+1] = "│" + line + padding + "│"
+		if pad {
+			visualLen := ansi_flip.UnicodeStringLength(line)
+			padding := strings.Repeat(" ", maxLen-visualLen)
+			result[i+1] = "│" + line + padding + "│"
+		} else {
+			result[i+1] = "│" + line + "│"
+		}
 	}
 	result[len(result)-1] = "╰" + strings.Repeat("─", maxLen) + "╯"
 	return strings.Join(result, "\n") + "\n"
@@ -101,19 +105,17 @@ func TestTitleResult() string {
 }
 
 // PrintSimpleTestResults prints formatted test results for simple tests (with quoted output).
-func PrintSimpleTestResults(input string, expected interface{}, result interface{}) {
-	if Debug() {
-		fmt.Printf("%s \t  '%v\x1b[0m'\n", TestTitleInput(), input)
-		fmt.Printf("%s '%v\x1b[0m'\n", TestTitleExpected(), expected)
-		fmt.Printf("%s   '%v\x1b[0m'\n", TestTitleResult(), result)
-	}
+func PrintSimpleTestResults(input string, expected string, result string) {
+	fmt.Printf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	fmt.Printf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
+	fmt.Printf("%s\n%v\x1b[0m\n", TestTitleResult(), AddBorder(result, false))
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
 func PrintANSITestResults(input string, expected, result [][]ansi_flip.ANSILineToken, test *testing.T) {
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input))
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(ansi_flip.BuildANSIString(expected, 0)))
-	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(ansi_flip.BuildANSIString(result, 0)))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(ansi_flip.BuildANSIString(expected, 0), false))
+	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(ansi_flip.BuildANSIString(result, 0), false))
 
 	if Debug() {
 		for i, line := range expected {

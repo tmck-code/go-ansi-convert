@@ -8,20 +8,113 @@ import (
 )
 
 func TestUnicodeStringLength(test *testing.T) {
-	msg := []string{
-		" ▄  █ ▄███▄   █    █    ████▄       ▄ ▄   ████▄ █▄▄▄▄ █     ██▄",   // 63
-		"█   █ █▀   ▀  █    █    █   █      █   █  █   █ █  ▄▀ █     █  █",  // 64
-		"██▀▀█ ██▄▄    █    █    █   █     █ ▄   █ █   █ █▀▀▌  █     █   █", // 65
-		"█   █ █▄   ▄▀ ███▄ ███▄ ▀████     █  █  █ ▀████ █  █  ███▄  █  █",  // 64
-		"   █  ▀███▀       ▀    ▀           █ █ █          █       ▀ ███▀",  // 64
-		"  ▀                                 ▀ ▀          ▀",                // 50
+	testCases := []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			name:     "ASCII text",
+			input:    "Hello World",
+			expected: 11,
+		},
+		{
+			name:     "Block/box drawing characters",
+			input:    "┌─────┐│     │└─────┘",
+			expected: 21,
+		},
+		{
+			name:     "Full block characters",
+			input:    "█▀▄▌▐░▒▓",
+			expected: 8,
+		},
+		{
+			name:     "Box drawing with double lines",
+			input:    "╔═══╗║   ║╚═══╝",
+			expected: 15,
+		},
+		{
+			name:     "Japanese hiragana",
+			input:    "こんにちは", // "hello" in hiragana
+			expected: 10,      // 5 chars × 2 width each
+		},
+		{
+			name:     "Japanese katakana",
+			input:    "カタカナ", // katakana
+			expected: 8,      // 4 chars × 2 width each
+		},
+		{
+			name:     "Japanese kanji",
+			input:    "日本語", // "Japanese language"
+			expected: 6,     // 3 chars × 2 width each
+		},
+		{
+			name:     "Mixed ASCII and Japanese",
+			input:    "Hello世界", // "Hello world"
+			expected: 9,         // 5 ASCII + 2 kanji (4 width)
+		},
+		{
+			name:     "ANSI colored ASCII",
+			input:    "\x1b[38;5;129mHello\x1b[0m",
+			expected: 5, // ANSI codes don't count
+		},
+		{
+			name:     "ANSI colored Japanese",
+			input:    "\x1b[38;5;160m日本語\x1b[0m",
+			expected: 6, // 3 kanji × 2 width, ANSI codes don't count
+		},
+		{
+			name:     "ANSI colored box characters",
+			input:    "\x1b[38;5;196m█\x1b[48;5;16m▀▄\x1b[0m",
+			expected: 3, // 3 block chars, ANSI codes don't count
+		},
+		{
+			name:     "Complex ANSI with mixed characters",
+			input:    "\x1b[38;5;129mHello\x1b[0m \x1b[38;5;160m世界\x1b[0m \x1b[38;5;46m█▀\x1b[0m",
+			expected: 13,
+			// Hello 世界 █▀
+			// "Hello " (6) + "世界 " (5) + "█▀" (2) = 13
+		},
+		{
+			name:     "Multiple ANSI codes in sequence",
+			input:    "\x1b[38;5;160m\x1b[48;5;16mTest\x1b[0m",
+			expected: 4,
+		},
+		{
+			name:     "Japanese with FG and BG colors",
+			input:    "\x1b[38;5;129m\x1b[48;5;160mこんにちは\x1b[0m",
+			expected: 10, // 5 hiragana chars × 2 width
+		},
+		{
+			name:     "Box art",
+			input:    " ▄  █ ▄███▄   █    █    ████▄       ▄ ▄   ████▄ █▄▄▄▄ █     ██▄",
+			expected: 63,
+		},
+		{
+			name:     "Mixed width Unicode with ANSI",
+			input:    "\x1b[38;5;46m┌──┐\x1b[0m \x1b[38;5;160m日本\x1b[0m \x1b[38;5;129mABC\x1b[0m",
+			expected: 13, // "┌──┐" (4) + " " (1) + "日本" (4) + " " (1) + "ABC" (3) = 13
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: 0,
+		},
+		{
+			name:     "Only ANSI codes",
+			input:    "\x1b[38;5;129m\x1b[48;5;160m\x1b[0m",
+			expected: 0,
+		},
 	}
-	expected := []int{63, 64, 65, 64, 64, 50}
-	results := make([]int, len(msg))
-	for i, line := range msg {
-		results[i] = ansi_flip.UnicodeStringLength(line)
+
+	for _, tc := range testCases {
+		test.Run(tc.name, func(t *testing.T) {
+			result := ansi_flip.UnicodeStringLength(tc.input)
+			if result != tc.expected {
+				t.Errorf("UnicodeStringLength(%q) = %d; want %d", tc.input, result, tc.expected)
+			}
+		})
 	}
-	Assert(expected, results, test)
 }
 
 // Test ANSI sanitisation ------------------------------------------------------
@@ -48,19 +141,55 @@ func TestSanitiseUnicodeString(test *testing.T) {
 			expected: "\x1b[38;5;129mColored text\x1b[0m",
 		},
 		{
-			name:     "Multi-line without ANSI codes",
-			input:    "Line 1\nLine 2",
-			expected: "Line 1\x1b[0m\nLine 2\x1b[0m",
+			name: "Multi-line without ANSI codes",
+			input: strings.Join(
+				[]string{
+					"Line 1",
+					"Line 2",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"Line 1\x1b[0m",
+					"Line 2\x1b[0m",
+				},
+				"\n",
+			),
 		},
 		{
-			name:     "Multi-line with ANSI codes",
-			input:    "\x1b[38;5;129mLine 1\nLine 2",
-			expected: "\x1b[38;5;129mLine 1\x1b[0m\n\x1b[38;5;129mLine 2\x1b[0m",
+			name: "Multi-line with ANSI codes",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;129mLine 1",
+					"Line 2",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;129mLine 1\x1b[0m",
+					"\x1b[38;5;129mLine 2\x1b[0m",
+				},
+				"\n",
+			),
 		},
 		{
-			name:     "Multi-line with FG and BG colors",
-			input:    "\x1b[38;5;129m\x1b[48;5;160mLine 1\nLine 2",
-			expected: "\x1b[38;5;129m\x1b[48;5;160mLine 1\x1b[0m\n\x1b[38;5;129m\x1b[48;5;160mLine 2\x1b[0m",
+			name: "Multi-line with FG and BG colors",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;129m\x1b[48;5;160mLine 1",
+					"Line 2",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;129m\x1b[48;5;160mLine 1\x1b[0m",
+					"\x1b[38;5;129m\x1b[48;5;160mLine 2\x1b[0m",
+				},
+				"\n",
+			),
 		},
 		{
 			name:     "Line with reset followed by color",
@@ -68,9 +197,21 @@ func TestSanitiseUnicodeString(test *testing.T) {
 			expected: "\x1b[38;5;129mText\x1b[38;5;160mMore\x1b[0m",
 		},
 		{
-			name:     "Multi-line with reset in middle",
-			input:    "\x1b[38;5;129mLine 1\x1b[0m\nLine 2",
-			expected: "\x1b[38;5;129mLine 1\x1b[0m\nLine 2\x1b[0m",
+			name: "Multi-line with reset in middle",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;129mLine 1\x1b[0m",
+					"Line 2",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;129mLine 1\x1b[0m",
+					"Line 2\x1b[0m",
+				},
+				"\n",
+			),
 		},
 		{
 			name:     "Empty string",
@@ -78,14 +219,200 @@ func TestSanitiseUnicodeString(test *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "Multi-line with color continuation and reset",
-			input:    "\x1b[38;5;160m▄\x1b[38;5;46m▄\n▄\x1b[38;5;190m▄",
-			expected: "\x1b[38;5;160m▄\x1b[38;5;46m▄\x1b[0m\n\x1b[38;5;46m▄\x1b[38;5;190m▄\x1b[0m",
+			name: "Multi-line with color continuation and reset",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;160m▄\x1b[38;5;46m▄",
+					"▄\x1b[38;5;190m▄",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;160m▄\x1b[38;5;46m▄\x1b[0m",
+					"\x1b[38;5;46m▄\x1b[38;5;190m▄\x1b[0m",
+				},
+				"\n",
+			),
 		},
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := ansi_flip.SanitiseUnicodeString(tc.input)
+			result := ansi_flip.SanitiseUnicodeString(tc.input, false)
+			PrintSimpleTestResults(tc.input, tc.expected, result)
+			Assert(tc.expected, result, t)
+		})
+	}
+}
+
+func TestSanitiseUnicodeStringWithJustify(test *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Single line without ANSI codes - no justification needed",
+			input:    "Hello World",
+			expected: "Hello World\x1b[0m",
+		},
+		{
+			name: "Multi-line without ANSI codes - different lengths",
+			input: strings.Join(
+				[]string{
+					"Short",
+					"Longer line",
+					"Med",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"Short\x1b[0m      ",
+					"Longer line\x1b[0m",
+					"Med\x1b[0m        ",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Multi-line with ANSI codes - different lengths",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;129mShort",
+					"Longer line",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;129mShort\x1b[0m      ",
+					"\x1b[38;5;129mLonger line\x1b[0m",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Multi-line with Unicode characters - different widths",
+			input: strings.Join(
+				[]string{
+					"Hello",
+					"世界",
+					"Test",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"Hello\x1b[0m",
+					"世界\x1b[0m ",
+					"Test\x1b[0m ",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Multi-line with ANSI and Unicode - complex case",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;160mABC\x1b[0m   ",
+					"\x1b[38;5;46m世界\x1b[0m  ",
+					"\x1b[38;5;46mLonger\x1b[0m",
+					"\x1b[38m\x1b[48;5;160mこんにちは\x1b[0m",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;160mABC\x1b[0m       ",
+					"\x1b[38;5;46m世界\x1b[0m      ",
+					"\x1b[38;5;46mLonger\x1b[0m    ",
+					"\x1b[38m\x1b[48;5;160mこんにちは\x1b[0m",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Multi-line with box characters",
+			input: strings.Join(
+				[]string{
+					"█▀",
+					"████",
+					"▄",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"█▀\x1b[0m  ",
+					"████\x1b[0m",
+					"▄\x1b[0m   ",
+				},
+				"\n",
+			),
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name: "Multi-line - all same length",
+			input: strings.Join(
+				[]string{
+					"AAAA",
+					"BBBB",
+					"CCCC",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"AAAA\x1b[0m",
+					"BBBB\x1b[0m",
+					"CCCC\x1b[0m",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Single char vs longer line",
+			input: strings.Join(
+				[]string{
+					"A",
+					"Long line here",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"A\x1b[0m             ",
+					"Long line here\x1b[0m",
+				},
+				"\n",
+			),
+		},
+		{
+			name: "Multi-line with FG and BG colors",
+			input: strings.Join(
+				[]string{
+					"\x1b[38;5;129m\x1b[48;5;160mAB",
+					"Longer",
+				},
+				"\n",
+			),
+			expected: strings.Join(
+				[]string{
+					"\x1b[38;5;129m\x1b[48;5;160mAB\x1b[0m    ",
+					"\x1b[38;5;129m\x1b[48;5;160mLonger\x1b[0m",
+				},
+				"\n",
+			),
+		},
+	}
+	for _, tc := range testCases {
+		test.Run(tc.name, func(t *testing.T) {
+			result := ansi_flip.SanitiseUnicodeString(tc.input, true)
 			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
@@ -113,7 +440,7 @@ func TestUnicodeTokenise(test *testing.T) {
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
 			result := ansi_flip.TokeniseANSIString(tc.input)
-			PrintSimpleTestResults(tc.input, tc.expected, result)
+			PrintANSITestResults(tc.input, tc.expected, result, t)
 			for i, line := range tc.expected {
 				Assert(line, result[i], t)
 			}

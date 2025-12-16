@@ -47,7 +47,7 @@ func LongestUnicodeLineLength(lines []string) int {
 	return maxLen
 }
 
-func SanitiseUnicodeString(s string) string {
+func SanitiseUnicodeString(s string, justifyLines bool) string {
 	if s == "" {
 		return s
 	}
@@ -57,24 +57,38 @@ func SanitiseUnicodeString(s string) string {
 		return s
 	}
 
-	result := make([]string, 0, len(tokenizedLines))
+	result := make([]string, len(tokenizedLines))
 
-	for _, tokens := range tokenizedLines {
-		lineStr := ""
-		for _, token := range tokens {
-			lineStr += token.FG + token.BG + token.T
-		}
-		// Check if the last token has a reset
+	// Calculate max length if justification is needed
+	maxLen := 0
+	if justifyLines {
+		maxLen = LongestUnicodeLineLength(strings.Split(s, "\n"))
+	}
+
+	for i, tokens := range tokenizedLines {
+		var lineBuilder strings.Builder
+		lineLen := 0
 		hasReset := false
-		if len(tokens) > 0 {
-			lastToken := tokens[len(tokens)-1]
-			hasReset = lastToken.FG == "\x1b[0m"
+		for _, token := range tokens {
+			lineBuilder.WriteString(token.FG)
+			lineBuilder.WriteString(token.BG)
+			lineBuilder.WriteString(token.T)
+			lineLen += UnicodeStringLength(token.T)
+			if token.FG == "\x1b[0m" {
+				hasReset = true
+			} else if token.FG != "" || token.BG != "" {
+				hasReset = false
+			}
 		}
-		// Ensure line ends with reset if not already present
+		// Ensure line ends with reset before padding, if not already present
 		if !hasReset {
-			lineStr += "\x1b[0m"
+			lineBuilder.WriteString("\x1b[0m")
 		}
-		result = append(result, lineStr)
+		// Add padding if justification is enabled
+		if justifyLines && lineLen < maxLen {
+			lineBuilder.WriteString(strings.Repeat(" ", maxLen-lineLen))
+		}
+		result[i] = lineBuilder.String()
 	}
 	return strings.Join(result, "\n")
 }
