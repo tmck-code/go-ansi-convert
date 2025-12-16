@@ -1,84 +1,81 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
+	"github.com/pborman/getopt/v2"
 	"github.com/tmck-code/go-ansi-convert/src/convert"
 )
 
+type Args struct {
+	InputFile       string
+	OutputFile      string
+	Stdin           bool
+	Stdout          bool
+	FlipHorizontal  bool
+	FlipVertical    bool
+	Sanitise        bool
+	Justify         bool
+	Help			bool
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
+	getopt.SetProgram("ansi-flip")
+
+	help := getopt.BoolLong("help", 'h', "display this help message")
+
+	inputFile := getopt.StringLong("input", 'i', "", "Input file path (default: stdin)")
+	outputFile := getopt.StringLong("output", 'o', "", "Output file path (default: stdout)")
+
+	flip := getopt.EnumLong("flip", 'f', []string{"h", "v", "h,v", "v,h"}, "", "Flip horizontally (h), vertically (v), or both (h,v or v,h)")
+	getopt.BoolLong("sanitise", 's', "Sanitise ANSI lines, ensuring that each line ends with a reset code")
+	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
+
+	getopt.Lookup("flip").SetGroup("operation")
+	getopt.Lookup("sanitise").SetGroup("operation")
+	getopt.Lookup("help").SetGroup("operation")
+	getopt.RequiredGroup("operation")
+
+	getopt.Parse()
+
+	args := Args{
+		InputFile:      *inputFile,
+		OutputFile:     *outputFile,
+		Stdin:          !getopt.IsSet("input"),
+		Stdout:         !getopt.IsSet("output"),
+		FlipHorizontal: strings.Contains(*flip, "h"),
+		FlipVertical:   strings.Contains(*flip, "v"),
+		Sanitise:       getopt.IsSet("sanitise"),
+		Justify:        *justify,
+		Help:			*help,
 	}
 
-	mode := os.Args[1]
+	if args.Help {
+		getopt.Usage()
+		return
+	}
 
-	switch mode {
-	case "flip":
-		runFlip()
-	case "sanitise":
-		runSanitise()
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown mode: %s\n\n", mode)
-		printUsage()
-		os.Exit(1)
+	writeOutput(args, process(args, readInput(args)))
+}
+
+func readInput(args Args) string {
+	if args.Stdin {
+		return readStdin()
+	} else {
+		return readFile(args.InputFile)
 	}
 }
 
-func printUsage() {
-	fmt.Fprintln(os.Stderr, "Usage:")
-	fmt.Fprintln(os.Stderr, "  ansi-flip flip <input> <output>")
-	fmt.Fprintln(os.Stderr, "  ansi-flip sanitise [-justify] <input> <output>")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Modes:")
-	fmt.Fprintln(os.Stderr, "  flip      Reverse/flip ANSI text")
-	fmt.Fprintln(os.Stderr, "  sanitise  Clean up ANSI codes")
-	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Options for sanitise mode:")
-	fmt.Fprintln(os.Stderr, "  -justify  Justify lines to the same length")
-}
-
-func runFlip() {
-	if len(os.Args) < 4 {
-		fmt.Fprintln(os.Stderr, "Error: flip mode requires <input> and <output> file paths")
-		fmt.Fprintln(os.Stderr, "Usage: ansi-flip flip <input> <output>")
+func readStdin() string {
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
 		os.Exit(1)
 	}
-
-	inputFile := os.Args[2]
-	outputFile := os.Args[3]
-
-	input := readFile(inputFile)
-	tokenized := convert.TokeniseANSIString(input)
-	reversed := convert.ReverseANSIString(tokenized)
-	output := convert.BuildANSIString(reversed, 0)
-	writeFile(outputFile, output)
-}
-
-func runSanitise() {
-	// Parse sanitise-specific flags
-	sanitiseFlags := flag.NewFlagSet("sanitise", flag.ExitOnError)
-	justify := sanitiseFlags.Bool("justify", false, "Justify lines to the same length")
-
-	// Parse flags starting from os.Args[2:]
-	sanitiseFlags.Parse(os.Args[2:])
-
-	args := sanitiseFlags.Args()
-	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "Error: sanitise mode requires <input> and <output> file paths")
-		fmt.Fprintln(os.Stderr, "Usage: ansi-flip sanitise [-justify] <input> <output>")
-		os.Exit(1)
-	}
-
-	inputFile := args[0]
-	outputFile := args[1]
-
-	input := readFile(inputFile)
-	output := convert.SanitiseUnicodeString(input, *justify)
-	writeFile(outputFile, output)
+	return string(data)
 }
 
 func readFile(path string) string {
@@ -87,12 +84,30 @@ func readFile(path string) string {
 		fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", path, err)
 		os.Exit(1)
 	}
-	content := string(data)
-	// Trim trailing newline if present
-	if len(content) > 0 && content[len(content)-1] == '\n' {
-		content = content[:len(content)-1]
+	return string(data)
+}
+
+func process(args Args, input string) string {
+	if args.Sanitise {
+		return convert.SanitiseUnicodeString(input, args.Justify)
 	}
-	return content
+	return runFlip(input, args)
+}
+
+func runFlip(input string, args Args) string {
+	tokenized := convert.TokeniseANSIString(input)
+	if args.FlipHorizontal {
+		tokenized = convert.ReverseANSIString(tokenized)
+	}
+	return convert.BuildANSIString(tokenized, 0)
+}
+
+func writeOutput(args Args, output string) {
+	if args.Stdout {
+		fmt.Print(output)
+	} else {
+		writeFile(args.OutputFile, output)
+	}
 }
 
 func writeFile(path string, content string) {
