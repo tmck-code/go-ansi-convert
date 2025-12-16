@@ -68,7 +68,7 @@ func FlattenJSON(json string) string {
 }
 
 // AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
-func AddBorder(s string, unicodeStringLengthFunc func(string) int) string {
+func AddBorder(s string) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
 
 	maxLen := ansi_flip.LongestUnicodeLineLength(lines)
@@ -77,7 +77,7 @@ func AddBorder(s string, unicodeStringLengthFunc func(string) int) string {
 	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
 
 	for i, line := range lines {
-		visualLen := unicodeStringLengthFunc(line)
+		visualLen := ansi_flip.UnicodeStringLength(line)
 		padding := strings.Repeat(" ", maxLen-visualLen)
 		result[i+1] = "│" + line + padding + "│"
 	}
@@ -111,13 +111,9 @@ func PrintSimpleTestResults(input string, expected interface{}, result interface
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
 func PrintANSITestResults(input string, expected, result [][]ansi_flip.ANSILineToken, test *testing.T) {
-	addBorder := func(s string) string {
-		return AddBorder(s, ansi_flip.UnicodeStringLength)
-	}
-
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), addBorder(input))
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), addBorder(ansi_flip.BuildANSIString(expected, 0)))
-	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), addBorder(ansi_flip.BuildANSIString(result, 0)))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input))
+	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(ansi_flip.BuildANSIString(expected, 0)))
+	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(ansi_flip.BuildANSIString(result, 0)))
 
 	if Debug() {
 		for i, line := range expected {
