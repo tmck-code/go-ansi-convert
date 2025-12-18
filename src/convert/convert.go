@@ -6,6 +6,162 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+var (
+	HorizontalMirrorMap = map[rune]rune{
+		'<': '>', '>': '<',
+		'(': ')', ')': '(',
+		'[': ']', ']': '[',
+		'{': '}', '}': '{',
+		'/': '\\', '\\': '/',
+		'b': 'd', 'd': 'b',
+		'p': 'q', 'q': 'p',
+		'B': 'ᗺ', 'ᗺ': 'B',
+		'C': 'Ɔ', 'Ɔ': 'C',
+		'D': 'ᗡ', 'ᗡ': 'D',
+		'E': 'Ǝ', 'Ǝ': 'E',
+		'F': 'ꟻ', 'ꟻ': 'F',
+		'G': 'ວ', 'ວ': 'G',
+		'J': 'ᒐ', 'ᒐ': 'J',
+		'K': 'ꓘ', 'ꓘ': 'K',
+		'L': '⅃', '⅃': 'L',
+		'N': 'И', 'И': 'N',
+		'O': 'O',
+		'P': 'ᑫ', 'ᑫ': 'P',
+		'Q': 'Ϙ', 'Ϙ': 'Q',
+		'R': 'Я', 'Я': 'R',
+		'S': 'Ƨ', 'Ƨ': 'S',
+		'a': 'ɒ', 'ɒ': 'a',
+		'c': 'ɔ', 'ɔ': 'c',
+		'e': 'ɘ', 'ɘ': 'e',
+		'f': 'ᆿ', 'ᆿ': 'f',
+		'g': 'ϱ', 'ϱ': 'g',
+		'h': '⑁', '⑁': 'h',
+		'j': 'ᒑ', 'ᒑ': 'j',
+		'k': 'ʞ', 'ʞ': 'k',
+		'r': 'ɿ', 'ɿ': 'r',
+		's': 'ƨ', 'ƨ': 's',
+		't': 'ɟ', 'ɟ': 't',
+		'y': 'γ', 'γ': 'y',
+		'┌': '┐', '┐': '┌',
+		'┍': '┑', '┑': '┍',
+		'┎': '┒', '┒': '┎',
+		'┏': '┓', '┓': '┏',
+		'└': '┘', '┘': '└',
+		'┕': '┙', '┙': '┕',
+		'┖': '┚', '┚': '┖',
+		'┗': '┛', '┛': '┗',
+		'├': '┤', '┤': '├',
+		'┝': '┥', '┥': '┝',
+		'┞': '┦', '┦': '┞',
+		'┟': '┧', '┧': '┟',
+		'┠': '┨', '┨': '┠',
+		'┡': '┩', '┩': '┡',
+		'┢': '┪', '┪': '┢',
+		'┣': '┫', '┫': '┣',
+		'╒': '╕', '╕': '╒',
+		'╓': '╖', '╖': '╓',
+		'╔': '╗', '╗': '╔',
+		'╘': '╛', '╛': '╘',
+		'╙': '╜', '╜': '╙',
+		'╚': '╝', '╝': '╚',
+		'╞': '╡', '╡': '╞',
+		'╟': '╢', '╢': '╟',
+		'╠': '╣', '╣': '╠',
+		'╭': '╮', '╮': '╭',
+		'╰': '╯', '╯': '╰',
+		'╴': '╶', '╶': '╴',
+		'╸': '╺', '╺': '╸',
+		'╼': '╾', '╾': '╼',
+		'▖': '▗', '▗': '▖',
+		'▘': '▝', '▝': '▘',
+		'▌': '▐', '▐': '▌',
+		'▙': '▜', '▜': '▙',
+		'▚': '▞', '▞': '▚',
+	}
+
+	VerticalMirrorMap = map[rune]rune{
+		'!': '¡', '¡': '!',
+		'A': 'ꓯ', 'ꓯ': 'A',
+		'M': 'ꟽ', 'ꟽ': 'M',
+		'Q': 'Ό', 'Ό': 'Q',
+		'T': 'ꓕ', 'ꓕ': 'T',
+		'Y': '⅄', '⅄': 'Y',
+		'U': 'ꓵ', 'ꓵ': 'U',
+		'V': 'ꓥ', 'ꓥ': 'V',
+		'W': 'M', '^': 'v',
+		'v': '^', 'w': 'm',
+		'm': 'w', 'u': 'n',
+		'n': 'u', 'i': 'ᴉ',
+		'ᴉ': 'i', 'ɯ': 'm',
+		'ʌ': 'v', 'ʍ': 'w',
+		'y': 'ʎ', 'ʎ': 'y',
+		'┌': '└', '└': '┌',
+		'┍': '┕', '┕': '┍',
+		'┎': '┖', '┖': '┎',
+		'┏': '┗', '┗': '┏',
+		'┐': '┘', '┘': '┐',
+		'┑': '┙', '┙': '┑',
+		'┒': '┚', '┚': '┒',
+		'┓': '┛', '┛': '┓',
+		'┬': '┴', '┴': '┬',
+		'┭': '┵', '┵': '┭',
+		'┮': '┶', '┶': '┮',
+		'┯': '┷', '┷': '┯',
+		'┰': '┸', '┸': '┰',
+		'┱': '┹', '┹': '┱',
+		'┲': '┺', '┺': '┲',
+		'┳': '┻', '┻': '┳',
+		'╒': '╘', '╘': '╒',
+		'╓': '╙', '╙': '╓',
+		'╔': '╚', '╚': '╔',
+		'╕': '╛', '╛': '╕',
+		'╖': '╜', '╜': '╖',
+		'╗': '╝', '╝': '╗',
+		'╤': '╧', '╧': '╤',
+		'╥': '╨', '╨': '╥',
+		'╦': '╩', '╩': '╦',
+		'╭': '╰', '╰': '╭',
+		'╮': '╯', '╯': '╮',
+		'╵': '╷', '╷': '╵',
+		'╹': '╻', '╻': '╹',
+		'╽': '╿', '╿': '╽',
+		'▀': '▄', '▄': '▀',
+		'▔': '▁', '▁': '▔',
+		'▖': '▘', '▘': '▖',
+		'▗': '▝', '▝': '▗',
+		'▙': '▛', '▛': '▙',
+		'▚': '▞', '▞': '▚',
+		'H': 'H', 'I': 'I',
+		'O': 'O', 'X': 'X',
+		'l': 'l', 'x': 'x',
+		'├': '├', '┝': '┝',
+		'┠': '┠', '┣': '┣',
+		'┤': '┤', '┥': '┥',
+		'┨': '┨', '┫': '┫',
+		'╞': '╞', '╟': '╟',
+		'╠': '╠', '╡': '╡',
+		'╢': '╢', '╣': '╣',
+		'╴': '╴', '╶': '╶',
+		'╸': '╸', '╺': '╺',
+		'╼': '╼', '╾': '╾',
+		'─': '─', '━': '━',
+		'│': '│', '┃': '┃',
+		'═': '═', '║': '║',
+		'┼': '┼', '┽': '┽',
+		'┾': '┾', '┿': '┿',
+		'╂': '╂', '╉': '╉',
+		'╊': '╊', '╋': '╋',
+		'╪': '╪', '╫': '╫',
+		'╬': '╬', '╳': '╳',
+		'▌': '▌', '▍': '▍',
+		'▎': '▎', '▏': '▏',
+		'▐': '▐', '▕': '▕',
+		'█': '█', '▬': '▬',
+		'░': '░', '▒': '▒',
+		'▓': '▓',
+	}
+)
+
 // UnicodeStringLength calculates the display length of a string, accounting for:
 // - Unicode characters that are double-width (e.g., CJK characters, emojis)
 // - ANSI escape codes (which don't contribute to display width)
@@ -39,18 +195,25 @@ func UnicodeStringLength(s string) int {
 	return totalLen
 }
 
+func UnicodeLineLengths(lines []string) []int {
+	lengths := make([]int, len(lines))
+	for i, line := range lines {
+		lengths[i] = UnicodeStringLength(line)
+	}
+	return lengths
+}
+
 // LongestUnicodeLineLength finds the maximum display length among all lines.
-// It uses UnicodeStringLength to properly measure each line's width.
 func LongestUnicodeLineLength(lines []string) int {
 	maxLen := 0
-	for _, line := range lines {
-		length := UnicodeStringLength(line)
-		if length > maxLen {
-			maxLen = length
+	for _, line := range UnicodeLineLengths(lines) {
+		if line > maxLen {
+			maxLen = line
 		}
 	}
 	return maxLen
 }
+
 
 // SanitiseUnicodeString cleans up ANSI codes in a string and optionally justifies lines.
 // It ensures all lines end with a reset code and pads lines to equal width if justifyLines is true.
@@ -98,18 +261,6 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		result[i] = lineBuilder.String()
 	}
 	return strings.Join(result, "\n")
-}
-
-// ReverseUnicodeString reverses the order of characters in a string.
-// It works on a rune-by-rune basis to properly handle multi-byte Unicode characters.
-func ReverseUnicodeString(s string) string {
-	runes := []rune(s)
-	reversed := make([]rune, len(runes))
-
-	for i, r := range runes {
-		reversed[len(runes)-1-i] = r
-	}
-	return string(reversed)
 }
 
 // ANSILineToken represents a segment of text with its associated ANSI formatting.
@@ -280,10 +431,11 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 	return builder.String()
 }
 
-// ReverseANSIString horizontally flips tokenized ANSI lines while preserving formatting.
+// FlipHorizontal horizontally flips tokenized ANSI lines while preserving formatting.
 // It reverses the order of tokens on each line and the characters within each token's text.
+// If mirrorMap is provided, it mirrors any characters found in the map as it reverses.
 // All lines are padded on the left to maintain vertical alignment based on the widest line.
-func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
+func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 	linesRev := make([][]ANSILineToken, len(lines))
 
 	maxWidth := 0
@@ -307,10 +459,55 @@ func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
 			revTokens = append(revTokens, ANSILineToken{
 				FG: tokens[i].FG,
 				BG: tokens[i].BG,
-				T:  ReverseUnicodeString(tokens[i].T),
+				T:  MirrorHorizontally(tokens[i].T),
 			})
 		}
 		linesRev[idx] = revTokens
 	}
 	return linesRev
 }
+
+func FlipVertical(lines [][]ANSILineToken) [][]ANSILineToken {
+	n := len(lines)
+	flipped := make([][]ANSILineToken, n)
+
+	for i, line := range lines {
+		mirroredLine := make([]ANSILineToken, len(line))
+		for j, tok := range line {
+			mirroredLine[j] = ANSILineToken{
+				FG: tok.FG, BG: tok.BG, T: MirrorVertically(tok.T),
+			}
+		}
+		flipped[n-1-i] = mirroredLine
+	}
+	return flipped
+}
+
+func MirrorVertically(s string) string {
+	runes := []rune(s)
+	mirrored := make([]rune, len(runes))
+	for i, r := range runes {
+		mirrored[i] = getOrDefault(VerticalMirrorMap, r, r)
+	}
+	return string(mirrored)
+}
+
+// MirrorHorizontally reverses a string and mirrors any runes found in mirrorMap.
+func MirrorHorizontally(s string) string {
+	runes := []rune(s)
+	mirrored := make([]rune, len(runes))
+	for i, r := range runes {
+		mirrored[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
+	}
+	return string(mirrored)
+}
+
+// GetOrDefault returns the value for the key in the map,
+// or the specified defaultValue if the key is not found.
+func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
+	if value, ok := m[key]; ok {
+		return value
+	}
+	return defaultValue
+}
+

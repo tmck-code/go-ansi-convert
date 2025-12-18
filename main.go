@@ -11,15 +11,16 @@ import (
 )
 
 type Args struct {
-	InputFile       string
-	OutputFile      string
-	Stdin           bool
-	Stdout          bool
-	FlipHorizontal  bool
-	FlipVertical    bool
-	Sanitise        bool
-	Justify         bool
-	Help			bool
+	InputFile      string
+	OutputFile     string
+	Stdin          bool
+	Stdout         bool
+	FlipHorizontal bool
+	FlipVertical   bool
+	Sanitise       bool
+	Justify        bool
+	Help           bool
+	Display        bool
 }
 
 func main() {
@@ -33,6 +34,7 @@ func main() {
 	flip := getopt.EnumLong("flip", 'f', []string{"h", "v", "h,v", "v,h"}, "", "Flip horizontally (h), vertically (v), or both (h,v or v,h)")
 	getopt.BoolLong("sanitise", 's', "Sanitise ANSI lines, ensuring that each line ends with a reset code")
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
+	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
 
 	getopt.Lookup("flip").SetGroup("operation")
 	getopt.Lookup("sanitise").SetGroup("operation")
@@ -50,7 +52,8 @@ func main() {
 		FlipVertical:   strings.Contains(*flip, "v"),
 		Sanitise:       getopt.IsSet("sanitise"),
 		Justify:        *justify,
-		Help:			*help,
+		Help:           *help,
+		Display:        *display,
 	}
 
 	if args.Help {
@@ -58,7 +61,24 @@ func main() {
 		return
 	}
 
-	writeOutput(args, process(args, readInput(args)))
+	       input := readInput(args)
+	       result := process(args, input)
+	       if args.Display {
+		       displaySideBySide(input, result)
+		       return
+	       }
+	       writeOutput(args, result)
+}
+
+// displaySideBySide prints the original and flipped result side-by-side, separated by a space
+func displaySideBySide(original, flipped string) {
+	origLines := strings.Split(convert.SanitiseUnicodeString(original, true), "\n")
+	flippedLines := strings.Split(flipped, "\n")
+	for i := 0; i < len(origLines) && i < len(flippedLines); i++ {
+		left := origLines[i]
+		right := flippedLines[i]
+		fmt.Printf("%s%s %s\n", left, strings.Repeat(" ", 1), right)
+	}
 }
 
 func readInput(args Args) string {
@@ -88,18 +108,21 @@ func readFile(path string) string {
 }
 
 func process(args Args, input string) string {
-	if args.Sanitise {
-		return convert.SanitiseUnicodeString(input, args.Justify)
-	}
-	return runFlip(input, args)
+       if args.Sanitise {
+	       return convert.SanitiseUnicodeString(input, args.Justify)
+       }
+       return runFlip(input, args)
 }
 
 func runFlip(input string, args Args) string {
-	tokenized := convert.TokeniseANSIString(input)
-	if args.FlipHorizontal {
-		tokenized = convert.ReverseANSIString(tokenized)
-	}
-	return convert.BuildANSIString(tokenized, 0)
+       tokenized := convert.TokeniseANSIString(input)
+       if args.FlipHorizontal {
+	       tokenized = convert.FlipHorizontal(tokenized)
+       }
+       if args.FlipVertical {
+	       tokenized = convert.FlipVertical(tokenized)
+       }
+       return convert.BuildANSIString(tokenized, 0)
 }
 
 func writeOutput(args Args, output string) {
