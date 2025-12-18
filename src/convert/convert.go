@@ -102,12 +102,12 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 
 // ReverseUnicodeString reverses the order of characters in a string.
 // It works on a rune-by-rune basis to properly handle multi-byte Unicode characters.
-func ReverseUnicodeString(s string) string {
+func ReverseUnicodeString(s string, mirrorMap map[rune]rune) string {
 	runes := []rune(s)
 	reversed := make([]rune, len(runes))
 
 	for i, r := range runes {
-		reversed[len(runes)-1-i] = r
+		reversed[len(runes)-1-i] = getOrDefault(mirrorMap, r, r)
 	}
 	return string(reversed)
 }
@@ -285,52 +285,52 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 // If mirrorMap is provided, it mirrors any characters found in the map as it reverses.
 // All lines are padded on the left to maintain vertical alignment based on the widest line.
 func ReverseANSIString(lines [][]ANSILineToken, mirrorMap map[rune]rune) [][]ANSILineToken {
-       linesRev := make([][]ANSILineToken, len(lines))
+	linesRev := make([][]ANSILineToken, len(lines))
 
-       maxWidth := 0
-       widths := make([]int, len(lines))
-       for idx, l := range lines {
-	       lineWidth := 0
-	       for _, token := range l {
-		       lineWidth += UnicodeStringLength(token.T)
-	       }
-	       if lineWidth > maxWidth {
-		       maxWidth = lineWidth
-	       }
-	       widths[idx] = lineWidth
-       }
+	maxWidth := 0
+	widths := make([]int, len(lines))
+	for idx, l := range lines {
+		lineWidth := 0
+		for _, token := range l {
+			lineWidth += UnicodeStringLength(token.T)
+		}
+		if lineWidth > maxWidth {
+			maxWidth = lineWidth
+		}
+		widths[idx] = lineWidth
+	}
 
-       for idx, tokens := range lines {
-	       revTokens := make([]ANSILineToken, 1)
-	       // ensure vertical alignment
-	       revTokens[0] = ANSILineToken{FG: "", BG: "", T: strings.Repeat(" ", maxWidth-widths[idx])}
-	       for i := len(tokens) - 1; i >= 0; i-- {
-		       revTokens = append(revTokens, ANSILineToken{
-			       FG: tokens[i].FG,
-			       BG: tokens[i].BG,
-			       T:  reverseAndMirrorUnicodeString(tokens[i].T, mirrorMap),
-		       })
-	       }
-	       linesRev[idx] = revTokens
-       }
-       return linesRev
+	for idx, tokens := range lines {
+		revTokens := make([]ANSILineToken, 1)
+		// ensure vertical alignment
+		revTokens[0] = ANSILineToken{FG: "", BG: "", T: strings.Repeat(" ", maxWidth-widths[idx])}
+		for i := len(tokens) - 1; i >= 0; i-- {
+			revTokens = append(revTokens, ANSILineToken{
+				FG: tokens[i].FG,
+				BG: tokens[i].BG,
+				T:  reverseAndMirrorUnicodeString(tokens[i].T, mirrorMap),
+			})
+		}
+		linesRev[idx] = revTokens
+	}
+	return linesRev
 }
 
 // reverseAndMirrorUnicodeString reverses a string and mirrors any runes found in mirrorMap.
 func reverseAndMirrorUnicodeString(s string, mirrorMap map[rune]rune) string {
-       runes := []rune(s)
-       reversed := make([]rune, len(runes))
-       for i, r := range runes {
-	       reversed[len(runes)-1-i] = getOrDefault(mirrorMap, r, r)
-       }
-       return string(reversed)
+	runes := []rune(s)
+	reversed := make([]rune, len(runes))
+	for i, r := range runes {
+		reversed[len(runes)-1-i] = getOrDefault(mirrorMap, r, r)
+	}
+	return string(reversed)
 }
 
-// GetOrDefault returns the value for the key in the map, 
+// GetOrDefault returns the value for the key in the map,
 // or the specified defaultValue if the key is not found.
 func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
-    if value, ok := m[key]; ok {
-        return value
-    }
-    return defaultValue
+	if value, ok := m[key]; ok {
+		return value
+	}
+	return defaultValue
 }
