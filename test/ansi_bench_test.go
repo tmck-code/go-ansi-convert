@@ -72,7 +72,7 @@ func BenchmarkTokeniseANSIString(b *testing.B) {
 	}
 }
 
-func BenchmarkReverseUnicodeString(b *testing.B) {
+func BenchmarkMirrorHorizontally(b *testing.B) {
 	testCases := []struct {
 		name  string
 		input string
@@ -86,13 +86,13 @@ func BenchmarkReverseUnicodeString(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				convert.ReverseUnicodeString(tc.input)
+				convert.MirrorHorizontally(tc.input)
 			}
 		})
 	}
 }
 
-func BenchmarkReverseANSIString(b *testing.B) {
+func BenchmarkFlipHorizontal(b *testing.B) {
 	testCases := []struct {
 		name  string
 		input string
@@ -124,7 +124,7 @@ func BenchmarkReverseANSIString(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				tokens := convert.TokeniseANSIString(tc.input)
-				convert.ReverseANSIString(tokens)
+				convert.FlipHorizontal(tokens)
 			}
 		})
 	}

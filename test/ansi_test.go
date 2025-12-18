@@ -449,42 +449,6 @@ func TestUnicodeTokenise(test *testing.T) {
 	}
 }
 
-func TestUnicodeReverse(test *testing.T) {
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "Reverse basic ANSI string with no colour",
-			input:    "         ▄▄          ▄▄",
-			expected: "▄▄          ▄▄         ",
-		},
-		{
-			name:     "Reverse basic ANSI string with no colour and trailing spaces",
-			input:    "         ▄▄          ▄▄      ",
-			expected: "      ▄▄          ▄▄         ",
-		},
-		{
-			name:     "Mirror unicode chars basic",
-			input:    "▐█",
-			expected: "█▌",
-		},
-		// {
-		// 	name:     "Mirror unicode chars",
-		// 	input:    " ▐█ ▌ ▐▀█▄▄▄▀   ■",
-		// 	expected: "■   ▀▄▄▄█▀▐ ▌ █▌ ",
-		// },
-	}
-	for _, tc := range testCases {
-		test.Run(tc.name, func(t *testing.T) {
-			result := convert.ReverseUnicodeString(tc.input)
-			PrintSimpleTestResults(tc.input, tc.expected, result)
-			Assert(tc.expected, result, t)
-		})
-	}
-}
-
 func TestANSITokenise(test *testing.T) {
 	testCases := []struct {
 		name     string
@@ -676,7 +640,7 @@ func TestANSITokenise(test *testing.T) {
 // - reverse individual lines
 // - reverse multiple (newline separated) lines
 
-func TestReverseANSIString(test *testing.T) {
+func TestFlipHorizontal(test *testing.T) {
 	testCases := []struct {
 		name     string
 		input    string
@@ -832,7 +796,7 @@ func TestReverseANSIString(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := convert.ReverseANSIString(convert.TokeniseANSIString(tc.input))
+			result := convert.FlipHorizontal(convert.TokeniseANSIString(tc.input))
 			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})

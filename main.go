@@ -117,7 +117,7 @@ func process(args Args, input string) string {
 func runFlip(input string, args Args) string {
        tokenized := convert.TokeniseANSIString(input)
        if args.FlipHorizontal {
-	       tokenized = convert.ReverseANSIString(tokenized)
+	       tokenized = convert.FlipHorizontal(tokenized)
        }
        if args.FlipVertical {
 	       tokenized = convert.FlipVertical(tokenized)

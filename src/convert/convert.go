@@ -195,18 +195,25 @@ func UnicodeStringLength(s string) int {
 	return totalLen
 }
 
+func UnicodeLineLengths(lines []string) []int {
+	lengths := make([]int, len(lines))
+	for i, line := range lines {
+		lengths[i] = UnicodeStringLength(line)
+	}
+	return lengths
+}
+
 // LongestUnicodeLineLength finds the maximum display length among all lines.
-// It uses UnicodeStringLength to properly measure each line's width.
 func LongestUnicodeLineLength(lines []string) int {
 	maxLen := 0
-	for _, line := range lines {
-		length := UnicodeStringLength(line)
-		if length > maxLen {
-			maxLen = length
+	for _, line := range UnicodeLineLengths(lines) {
+		if line > maxLen {
+			maxLen = line
 		}
 	}
 	return maxLen
 }
+
 
 // SanitiseUnicodeString cleans up ANSI codes in a string and optionally justifies lines.
 // It ensures all lines end with a reset code and pads lines to equal width if justifyLines is true.
@@ -254,18 +261,6 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		result[i] = lineBuilder.String()
 	}
 	return strings.Join(result, "\n")
-}
-
-// ReverseUnicodeString reverses the order of characters in a string.
-// It works on a rune-by-rune basis to properly handle multi-byte Unicode characters.
-func ReverseUnicodeString(s string) string {
-	runes := []rune(s)
-	reversed := make([]rune, len(runes))
-
-	for i, r := range runes {
-		reversed[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
-	}
-	return string(reversed)
 }
 
 // ANSILineToken represents a segment of text with its associated ANSI formatting.
@@ -436,11 +431,11 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 	return builder.String()
 }
 
-// ReverseANSIString horizontally flips tokenized ANSI lines while preserving formatting.
+// FlipHorizontal horizontally flips tokenized ANSI lines while preserving formatting.
 // It reverses the order of tokens on each line and the characters within each token's text.
 // If mirrorMap is provided, it mirrors any characters found in the map as it reverses.
 // All lines are padded on the left to maintain vertical alignment based on the widest line.
-func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
+func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 	linesRev := make([][]ANSILineToken, len(lines))
 
 	maxWidth := 0
@@ -464,7 +459,7 @@ func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
 			revTokens = append(revTokens, ANSILineToken{
 				FG: tokens[i].FG,
 				BG: tokens[i].BG,
-				T:  reverseAndMirrorUnicodeString(tokens[i].T),
+				T:  MirrorHorizontally(tokens[i].T),
 			})
 		}
 		linesRev[idx] = revTokens
@@ -472,34 +467,39 @@ func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
 	return linesRev
 }
 
-func FlipVertical(msg string) [][]ANSILineToken {
-	tokenized := TokeniseANSIString(msg)
-	n := len(tokenized)
+func FlipVertical(lines [][]ANSILineToken) [][]ANSILineToken {
+	n := len(lines)
 	flipped := make([][]ANSILineToken, n)
-	for i, line := range tokenized {
+
+	for i, line := range lines {
 		mirroredLine := make([]ANSILineToken, len(line))
 		for j, tok := range line {
-			// Mirror each rune in the token's text
-			runes := []rune(tok.T)
-			for k, r := range runes {
-				runes[k] = getOrDefault(VerticalMirrorMap, r, r)
+			mirroredLine[j] = ANSILineToken{
+				FG: tok.FG, BG: tok.BG, T: MirrorVertically(tok.T),
 			}
-			tok.T = string(runes)
-			mirroredLine[j] = tok
 		}
 		flipped[n-1-i] = mirroredLine
 	}
 	return flipped
 }
 
-// reverseAndMirrorUnicodeString reverses a string and mirrors any runes found in mirrorMap.
-func reverseAndMirrorUnicodeString(s string) string {
+func MirrorVertically(s string) string {
 	runes := []rune(s)
-	reversed := make([]rune, len(runes))
+	mirrored := make([]rune, len(runes))
 	for i, r := range runes {
-		reversed[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
+		mirrored[i] = getOrDefault(VerticalMirrorMap, r, r)
 	}
-	return string(reversed)
+	return string(mirrored)
+}
+
+// MirrorHorizontally reverses a string and mirrors any runes found in mirrorMap.
+func MirrorHorizontally(s string) string {
+	runes := []rune(s)
+	mirrored := make([]rune, len(runes))
+	for i, r := range runes {
+		mirrored[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
+	}
+	return string(mirrored)
 }
 
 // GetOrDefault returns the value for the key in the map,
