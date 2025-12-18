@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -12,16 +11,16 @@ import (
 )
 
 type Args struct {
-	InputFile       string
-	OutputFile      string
-	Stdin           bool
-	Stdout          bool
-	FlipHorizontal  bool
-	FlipVertical    bool
-	Sanitise        bool
-	Justify         bool
-	Help            bool
-	Display         bool
+	InputFile      string
+	OutputFile     string
+	Stdin          bool
+	Stdout         bool
+	FlipHorizontal bool
+	FlipVertical   bool
+	Sanitise       bool
+	Justify        bool
+	Help           bool
+	Display        bool
 }
 
 func main() {
@@ -75,6 +74,7 @@ func main() {
 	}
 	writeOutput(args, result)
 }
+
 // displaySideBySide prints the original and flipped result side-by-side, separated by a space
 func displaySideBySide(original, flipped string) {
 	origLines := strings.Split(convert.SanitiseUnicodeString(original, true), "\n")
@@ -87,28 +87,78 @@ func displaySideBySide(original, flipped string) {
 }
 
 func loadHorizontalMirrorMap(path string) map[rune]rune {
-	f, err := os.Open(path)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening %s: %v\n", path, err)
-		os.Exit(1)
+	mirror := map[rune]rune{
+		'<': '>', '>': '<',
+		'(': ')', ')': '(',
+		'[': ']', ']': '[',
+		'{': '}', '}': '{',
+		'/': '\\', '\\': '/',
+		'b': 'd', 'd': 'b',
+		'p': 'q', 'q': 'p',
+		'B': 'ᗺ', 'ᗺ': 'B',
+		'C': 'Ɔ', 'Ɔ': 'C',
+		'D': 'ᗡ', 'ᗡ': 'D',
+		'E': 'Ǝ', 'Ǝ': 'E',
+		'F': 'ꟻ', 'ꟻ': 'F',
+		'G': 'ວ', 'ວ': 'G',
+		'J': 'ᒐ', 'ᒐ': 'J',
+		'K': 'ꓘ', 'ꓘ': 'K',
+		'L': '⅃', '⅃': 'L',
+		'N': 'И', 'И': 'N',
+		'O': 'O',
+		'P': 'ᑫ', 'ᑫ': 'P',
+		'Q': 'Ϙ', 'Ϙ': 'Q',
+		'R': 'Я', 'Я': 'R',
+		'S': 'Ƨ', 'Ƨ': 'S',
+		'a': 'ɒ', 'ɒ': 'a',
+		'c': 'ɔ', 'ɔ': 'c',
+		'e': 'ɘ', 'ɘ': 'e',
+		'f': 'ᆿ', 'ᆿ': 'f',
+		'g': 'ϱ', 'ϱ': 'g',
+		'h': '⑁', '⑁': 'h',
+		'j': 'ᒑ', 'ᒑ': 'j',
+		'k': 'ʞ', 'ʞ': 'k',
+		'r': 'ɿ', 'ɿ': 'r',
+		's': 'ƨ', 'ƨ': 's',
+		't': 'ɟ', 'ɟ': 't',
+		'y': 'γ', 'γ': 'y',
+		'┌': '┐', '┐': '┌',
+		'┍': '┑', '┑': '┍',
+		'┎': '┒', '┒': '┎',
+		'┏': '┓', '┓': '┏',
+		'└': '┘', '┘': '└',
+		'┕': '┙', '┙': '┕',
+		'┖': '┚', '┚': '┖',
+		'┗': '┛', '┛': '┗',
+		'├': '┤', '┤': '├',
+		'┝': '┥', '┥': '┝',
+		'┞': '┦', '┦': '┞',
+		'┟': '┧', '┧': '┟',
+		'┠': '┨', '┨': '┠',
+		'┡': '┩', '┩': '┡',
+		'┢': '┪', '┪': '┢',
+		'┣': '┫', '┫': '┣',
+		'╒': '╕', '╕': '╒',
+		'╓': '╖', '╖': '╓',
+		'╔': '╗', '╗': '╔',
+		'╘': '╛', '╛': '╘',
+		'╙': '╜', '╜': '╙',
+		'╚': '╝', '╝': '╚',
+		'╞': '╡', '╡': '╞',
+		'╟': '╢', '╢': '╟',
+		'╠': '╣', '╣': '╠',
+		'╭': '╮', '╮': '╭',
+		'╰': '╯', '╯': '╰',
+		'╴': '╶', '╶': '╴',
+		'╸': '╺', '╺': '╸',
+		'╼': '╾', '╾': '╼',
+		'▖': '▗', '▗': '▖',
+		'▘': '▝', '▝': '▘',
+		'▌': '▐', '▐': '▌',
+		'▙': '▜', '▜': '▙',
+		'▚': '▞', '▞': '▚',
 	}
-	defer f.Close()
-	var pairs [][2]string
-	dec := json.NewDecoder(f)
-	if err := dec.Decode(&pairs); err != nil {
-		fmt.Fprintf(os.Stderr, "Error decoding %s: %v\n", path, err)
-		os.Exit(1)
-	}
-	m := make(map[rune]rune)
-	for _, p := range pairs {
-		if len(p[0]) == 1 && len(p[1]) == 1 {
-			l := []rune(p[0])[0]
-			r := []rune(p[1])[0]
-			m[l] = r
-			m[r] = l
-		}
-	}
-	return m
+	return mirror
 }
 
 func readInput(args Args) string {
