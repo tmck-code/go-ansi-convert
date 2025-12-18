@@ -478,8 +478,7 @@ func TestUnicodeReverse(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			mirrorMap := map[rune]rune{'▌': '▐'}
-			result := convert.ReverseUnicodeString(tc.input, mirrorMap)
+			result := convert.ReverseUnicodeString(tc.input)
 			PrintSimpleTestResults(tc.input, tc.expected, result)
 			Assert(tc.expected, result, t)
 		})
@@ -833,7 +832,7 @@ func TestReverseANSIString(test *testing.T) {
 	}
 	for _, tc := range testCases {
 		test.Run(tc.name, func(t *testing.T) {
-			result := convert.ReverseANSIString(convert.TokeniseANSIString(tc.input), map[rune]rune{})
+			result := convert.ReverseANSIString(convert.TokeniseANSIString(tc.input))
 			PrintANSITestResults(tc.input, tc.expected, result, t)
 			Assert(tc.expected, result, t)
 		})

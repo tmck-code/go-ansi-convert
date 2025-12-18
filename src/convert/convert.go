@@ -6,6 +6,162 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+var (
+	HorizontalMirrorMap = map[rune]rune{
+		'<': '>', '>': '<',
+		'(': ')', ')': '(',
+		'[': ']', ']': '[',
+		'{': '}', '}': '{',
+		'/': '\\', '\\': '/',
+		'b': 'd', 'd': 'b',
+		'p': 'q', 'q': 'p',
+		'B': 'ᗺ', 'ᗺ': 'B',
+		'C': 'Ɔ', 'Ɔ': 'C',
+		'D': 'ᗡ', 'ᗡ': 'D',
+		'E': 'Ǝ', 'Ǝ': 'E',
+		'F': 'ꟻ', 'ꟻ': 'F',
+		'G': 'ວ', 'ວ': 'G',
+		'J': 'ᒐ', 'ᒐ': 'J',
+		'K': 'ꓘ', 'ꓘ': 'K',
+		'L': '⅃', '⅃': 'L',
+		'N': 'И', 'И': 'N',
+		'O': 'O',
+		'P': 'ᑫ', 'ᑫ': 'P',
+		'Q': 'Ϙ', 'Ϙ': 'Q',
+		'R': 'Я', 'Я': 'R',
+		'S': 'Ƨ', 'Ƨ': 'S',
+		'a': 'ɒ', 'ɒ': 'a',
+		'c': 'ɔ', 'ɔ': 'c',
+		'e': 'ɘ', 'ɘ': 'e',
+		'f': 'ᆿ', 'ᆿ': 'f',
+		'g': 'ϱ', 'ϱ': 'g',
+		'h': '⑁', '⑁': 'h',
+		'j': 'ᒑ', 'ᒑ': 'j',
+		'k': 'ʞ', 'ʞ': 'k',
+		'r': 'ɿ', 'ɿ': 'r',
+		's': 'ƨ', 'ƨ': 's',
+		't': 'ɟ', 'ɟ': 't',
+		'y': 'γ', 'γ': 'y',
+		'┌': '┐', '┐': '┌',
+		'┍': '┑', '┑': '┍',
+		'┎': '┒', '┒': '┎',
+		'┏': '┓', '┓': '┏',
+		'└': '┘', '┘': '└',
+		'┕': '┙', '┙': '┕',
+		'┖': '┚', '┚': '┖',
+		'┗': '┛', '┛': '┗',
+		'├': '┤', '┤': '├',
+		'┝': '┥', '┥': '┝',
+		'┞': '┦', '┦': '┞',
+		'┟': '┧', '┧': '┟',
+		'┠': '┨', '┨': '┠',
+		'┡': '┩', '┩': '┡',
+		'┢': '┪', '┪': '┢',
+		'┣': '┫', '┫': '┣',
+		'╒': '╕', '╕': '╒',
+		'╓': '╖', '╖': '╓',
+		'╔': '╗', '╗': '╔',
+		'╘': '╛', '╛': '╘',
+		'╙': '╜', '╜': '╙',
+		'╚': '╝', '╝': '╚',
+		'╞': '╡', '╡': '╞',
+		'╟': '╢', '╢': '╟',
+		'╠': '╣', '╣': '╠',
+		'╭': '╮', '╮': '╭',
+		'╰': '╯', '╯': '╰',
+		'╴': '╶', '╶': '╴',
+		'╸': '╺', '╺': '╸',
+		'╼': '╾', '╾': '╼',
+		'▖': '▗', '▗': '▖',
+		'▘': '▝', '▝': '▘',
+		'▌': '▐', '▐': '▌',
+		'▙': '▜', '▜': '▙',
+		'▚': '▞', '▞': '▚',
+	}
+
+	VerticalMirrorMap = map[rune]rune{
+		'!': '¡', '¡': '!',
+		'A': 'ꓯ', 'ꓯ': 'A',
+		'M': 'ꟽ', 'ꟽ': 'M',
+		'Q': 'Ό', 'Ό': 'Q',
+		'T': 'ꓕ', 'ꓕ': 'T',
+		'Y': '⅄', '⅄': 'Y',
+		'U': 'ꓵ', 'ꓵ': 'U',
+		'V': 'ꓥ', 'ꓥ': 'V',
+		'W': 'M', '^': 'v',
+		'v': '^', 'w': 'm',
+		'm': 'w', 'u': 'n',
+		'n': 'u', 'i': 'ᴉ',
+		'ᴉ': 'i', 'ɯ': 'm',
+		'ʌ': 'v', 'ʍ': 'w',
+		'y': 'ʎ', 'ʎ': 'y',
+		'┌': '└', '└': '┌',
+		'┍': '┕', '┕': '┍',
+		'┎': '┖', '┖': '┎',
+		'┏': '┗', '┗': '┏',
+		'┐': '┘', '┘': '┐',
+		'┑': '┙', '┙': '┑',
+		'┒': '┚', '┚': '┒',
+		'┓': '┛', '┛': '┓',
+		'┬': '┴', '┴': '┬',
+		'┭': '┵', '┵': '┭',
+		'┮': '┶', '┶': '┮',
+		'┯': '┷', '┷': '┯',
+		'┰': '┸', '┸': '┰',
+		'┱': '┹', '┹': '┱',
+		'┲': '┺', '┺': '┲',
+		'┳': '┻', '┻': '┳',
+		'╒': '╘', '╘': '╒',
+		'╓': '╙', '╙': '╓',
+		'╔': '╚', '╚': '╔',
+		'╕': '╛', '╛': '╕',
+		'╖': '╜', '╜': '╖',
+		'╗': '╝', '╝': '╗',
+		'╤': '╧', '╧': '╤',
+		'╥': '╨', '╨': '╥',
+		'╦': '╩', '╩': '╦',
+		'╭': '╰', '╰': '╭',
+		'╮': '╯', '╯': '╮',
+		'╵': '╷', '╷': '╵',
+		'╹': '╻', '╻': '╹',
+		'╽': '╿', '╿': '╽',
+		'▀': '▄', '▄': '▀',
+		'▔': '▁', '▁': '▔',
+		'▖': '▘', '▘': '▖',
+		'▗': '▝', '▝': '▗',
+		'▙': '▛', '▛': '▙',
+		'▚': '▞', '▞': '▚',
+		'H': 'H', 'I': 'I',
+		'O': 'O', 'X': 'X',
+		'l': 'l', 'x': 'x',
+		'├': '├', '┝': '┝',
+		'┠': '┠', '┣': '┣',
+		'┤': '┤', '┥': '┥',
+		'┨': '┨', '┫': '┫',
+		'╞': '╞', '╟': '╟',
+		'╠': '╠', '╡': '╡',
+		'╢': '╢', '╣': '╣',
+		'╴': '╴', '╶': '╶',
+		'╸': '╸', '╺': '╺',
+		'╼': '╼', '╾': '╾',
+		'─': '─', '━': '━',
+		'│': '│', '┃': '┃',
+		'═': '═', '║': '║',
+		'┼': '┼', '┽': '┽',
+		'┾': '┾', '┿': '┿',
+		'╂': '╂', '╉': '╉',
+		'╊': '╊', '╋': '╋',
+		'╪': '╪', '╫': '╫',
+		'╬': '╬', '╳': '╳',
+		'▌': '▌', '▍': '▍',
+		'▎': '▎', '▏': '▏',
+		'▐': '▐', '▕': '▕',
+		'█': '█', '▬': '▬',
+		'░': '░', '▒': '▒',
+		'▓': '▓',
+	}
+)
+
 // UnicodeStringLength calculates the display length of a string, accounting for:
 // - Unicode characters that are double-width (e.g., CJK characters, emojis)
 // - ANSI escape codes (which don't contribute to display width)
@@ -102,12 +258,12 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 
 // ReverseUnicodeString reverses the order of characters in a string.
 // It works on a rune-by-rune basis to properly handle multi-byte Unicode characters.
-func ReverseUnicodeString(s string, mirrorMap map[rune]rune) string {
+func ReverseUnicodeString(s string) string {
 	runes := []rune(s)
 	reversed := make([]rune, len(runes))
 
 	for i, r := range runes {
-		reversed[len(runes)-1-i] = getOrDefault(mirrorMap, r, r)
+		reversed[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
 	}
 	return string(reversed)
 }
@@ -284,7 +440,7 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 // It reverses the order of tokens on each line and the characters within each token's text.
 // If mirrorMap is provided, it mirrors any characters found in the map as it reverses.
 // All lines are padded on the left to maintain vertical alignment based on the widest line.
-func ReverseANSIString(lines [][]ANSILineToken, mirrorMap map[rune]rune) [][]ANSILineToken {
+func ReverseANSIString(lines [][]ANSILineToken) [][]ANSILineToken {
 	linesRev := make([][]ANSILineToken, len(lines))
 
 	maxWidth := 0
@@ -308,7 +464,7 @@ func ReverseANSIString(lines [][]ANSILineToken, mirrorMap map[rune]rune) [][]ANS
 			revTokens = append(revTokens, ANSILineToken{
 				FG: tokens[i].FG,
 				BG: tokens[i].BG,
-				T:  reverseAndMirrorUnicodeString(tokens[i].T, mirrorMap),
+				T:  reverseAndMirrorUnicodeString(tokens[i].T),
 			})
 		}
 		linesRev[idx] = revTokens
@@ -316,12 +472,32 @@ func ReverseANSIString(lines [][]ANSILineToken, mirrorMap map[rune]rune) [][]ANS
 	return linesRev
 }
 
+func FlipVertical(msg string) [][]ANSILineToken {
+	tokenized := TokeniseANSIString(msg)
+	n := len(tokenized)
+	flipped := make([][]ANSILineToken, n)
+	for i, line := range tokenized {
+		mirroredLine := make([]ANSILineToken, len(line))
+		for j, tok := range line {
+			// Mirror each rune in the token's text
+			runes := []rune(tok.T)
+			for k, r := range runes {
+				runes[k] = getOrDefault(VerticalMirrorMap, r, r)
+			}
+			tok.T = string(runes)
+			mirroredLine[j] = tok
+		}
+		flipped[n-1-i] = mirroredLine
+	}
+	return flipped
+}
+
 // reverseAndMirrorUnicodeString reverses a string and mirrors any runes found in mirrorMap.
-func reverseAndMirrorUnicodeString(s string, mirrorMap map[rune]rune) string {
+func reverseAndMirrorUnicodeString(s string) string {
 	runes := []rune(s)
 	reversed := make([]rune, len(runes))
 	for i, r := range runes {
-		reversed[len(runes)-1-i] = getOrDefault(mirrorMap, r, r)
+		reversed[len(runes)-1-i] = getOrDefault(HorizontalMirrorMap, r, r)
 	}
 	return string(reversed)
 }
@@ -334,3 +510,4 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 	}
 	return defaultValue
 }
+

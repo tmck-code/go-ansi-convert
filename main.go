@@ -56,23 +56,18 @@ func main() {
 		Display:        *display,
 	}
 
-	var hMirror map[rune]rune
-	if args.FlipHorizontal {
-		hMirror = loadHorizontalMirrorMap("horizontal.json")
-	}
-
 	if args.Help {
 		getopt.Usage()
 		return
 	}
 
-	input := readInput(args)
-	result := process(args, input, hMirror)
-	if args.Display {
-		displaySideBySide(input, result)
-		return
-	}
-	writeOutput(args, result)
+	       input := readInput(args)
+	       result := process(args, input)
+	       if args.Display {
+		       displaySideBySide(input, result)
+		       return
+	       }
+	       writeOutput(args, result)
 }
 
 // displaySideBySide prints the original and flipped result side-by-side, separated by a space
@@ -84,81 +79,6 @@ func displaySideBySide(original, flipped string) {
 		right := flippedLines[i]
 		fmt.Printf("%s%s %s\n", left, strings.Repeat(" ", 1), right)
 	}
-}
-
-func loadHorizontalMirrorMap(path string) map[rune]rune {
-	mirror := map[rune]rune{
-		'<': '>', '>': '<',
-		'(': ')', ')': '(',
-		'[': ']', ']': '[',
-		'{': '}', '}': '{',
-		'/': '\\', '\\': '/',
-		'b': 'd', 'd': 'b',
-		'p': 'q', 'q': 'p',
-		'B': 'ᗺ', 'ᗺ': 'B',
-		'C': 'Ɔ', 'Ɔ': 'C',
-		'D': 'ᗡ', 'ᗡ': 'D',
-		'E': 'Ǝ', 'Ǝ': 'E',
-		'F': 'ꟻ', 'ꟻ': 'F',
-		'G': 'ວ', 'ວ': 'G',
-		'J': 'ᒐ', 'ᒐ': 'J',
-		'K': 'ꓘ', 'ꓘ': 'K',
-		'L': '⅃', '⅃': 'L',
-		'N': 'И', 'И': 'N',
-		'O': 'O',
-		'P': 'ᑫ', 'ᑫ': 'P',
-		'Q': 'Ϙ', 'Ϙ': 'Q',
-		'R': 'Я', 'Я': 'R',
-		'S': 'Ƨ', 'Ƨ': 'S',
-		'a': 'ɒ', 'ɒ': 'a',
-		'c': 'ɔ', 'ɔ': 'c',
-		'e': 'ɘ', 'ɘ': 'e',
-		'f': 'ᆿ', 'ᆿ': 'f',
-		'g': 'ϱ', 'ϱ': 'g',
-		'h': '⑁', '⑁': 'h',
-		'j': 'ᒑ', 'ᒑ': 'j',
-		'k': 'ʞ', 'ʞ': 'k',
-		'r': 'ɿ', 'ɿ': 'r',
-		's': 'ƨ', 'ƨ': 's',
-		't': 'ɟ', 'ɟ': 't',
-		'y': 'γ', 'γ': 'y',
-		'┌': '┐', '┐': '┌',
-		'┍': '┑', '┑': '┍',
-		'┎': '┒', '┒': '┎',
-		'┏': '┓', '┓': '┏',
-		'└': '┘', '┘': '└',
-		'┕': '┙', '┙': '┕',
-		'┖': '┚', '┚': '┖',
-		'┗': '┛', '┛': '┗',
-		'├': '┤', '┤': '├',
-		'┝': '┥', '┥': '┝',
-		'┞': '┦', '┦': '┞',
-		'┟': '┧', '┧': '┟',
-		'┠': '┨', '┨': '┠',
-		'┡': '┩', '┩': '┡',
-		'┢': '┪', '┪': '┢',
-		'┣': '┫', '┫': '┣',
-		'╒': '╕', '╕': '╒',
-		'╓': '╖', '╖': '╓',
-		'╔': '╗', '╗': '╔',
-		'╘': '╛', '╛': '╘',
-		'╙': '╜', '╜': '╙',
-		'╚': '╝', '╝': '╚',
-		'╞': '╡', '╡': '╞',
-		'╟': '╢', '╢': '╟',
-		'╠': '╣', '╣': '╠',
-		'╭': '╮', '╮': '╭',
-		'╰': '╯', '╯': '╰',
-		'╴': '╶', '╶': '╴',
-		'╸': '╺', '╺': '╸',
-		'╼': '╾', '╾': '╼',
-		'▖': '▗', '▗': '▖',
-		'▘': '▝', '▝': '▘',
-		'▌': '▐', '▐': '▌',
-		'▙': '▜', '▜': '▙',
-		'▚': '▞', '▞': '▚',
-	}
-	return mirror
 }
 
 func readInput(args Args) string {
@@ -187,19 +107,22 @@ func readFile(path string) string {
 	return string(data)
 }
 
-func process(args Args, input string, hMirror map[rune]rune) string {
-	if args.Sanitise {
-		return convert.SanitiseUnicodeString(input, args.Justify)
-	}
-	return runFlip(input, args, hMirror)
+func process(args Args, input string) string {
+       if args.Sanitise {
+	       return convert.SanitiseUnicodeString(input, args.Justify)
+       }
+       return runFlip(input, args)
 }
 
-func runFlip(input string, args Args, hMirror map[rune]rune) string {
-	tokenized := convert.TokeniseANSIString(input)
-	if args.FlipHorizontal {
-		tokenized = convert.ReverseANSIString(tokenized, hMirror)
-	}
-	return convert.BuildANSIString(tokenized, 0)
+func runFlip(input string, args Args) string {
+       tokenized := convert.TokeniseANSIString(input)
+       if args.FlipHorizontal {
+	       tokenized = convert.ReverseANSIString(tokenized)
+       }
+       if args.FlipVertical {
+	       tokenized = convert.FlipVertical(tokenized)
+       }
+       return convert.BuildANSIString(tokenized, 0)
 }
 
 func writeOutput(args Args, output string) {

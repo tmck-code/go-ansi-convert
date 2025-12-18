@@ -86,7 +86,7 @@ func BenchmarkReverseUnicodeString(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				convert.ReverseUnicodeString(tc.input, map[rune]rune{})
+				convert.ReverseUnicodeString(tc.input)
 			}
 		})
 	}
@@ -124,7 +124,7 @@ func BenchmarkReverseANSIString(b *testing.B) {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				tokens := convert.TokeniseANSIString(tc.input)
-				convert.ReverseANSIString(tokens, map[rune]rune{})
+				convert.ReverseANSIString(tokens)
 			}
 		})
 	}
