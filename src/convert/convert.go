@@ -214,7 +214,6 @@ func LongestUnicodeLineLength(lines []string) int {
 	return maxLen
 }
 
-
 // SanitiseUnicodeString cleans up ANSI codes in a string and optionally justifies lines.
 // It ensures all lines end with a reset code and pads lines to equal width if justifyLines is true.
 func SanitiseUnicodeString(s string, justifyLines bool) string {
@@ -227,13 +226,13 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		return s
 	}
 
-	result := make([]string, len(tokenizedLines))
-
 	// Calculate max length if justification is needed
 	maxLen := 0
 	if justifyLines {
 		maxLen = LongestUnicodeLineLength(strings.Split(s, "\n"))
 	}
+
+	var sanitised strings.Builder
 
 	for i, tokens := range tokenizedLines {
 		var lineBuilder strings.Builder
@@ -258,9 +257,12 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		if justifyLines && lineLen < maxLen {
 			lineBuilder.WriteString(strings.Repeat(" ", maxLen-lineLen))
 		}
-		result[i] = lineBuilder.String()
+		if i < len(tokenizedLines)-1 {
+			lineBuilder.WriteString("\n")
+		}
+		sanitised.WriteString(lineBuilder.String())
 	}
-	return strings.Join(result, "\n")
+	return sanitised.String()
 }
 
 // ANSILineToken represents a segment of text with its associated ANSI formatting.
@@ -283,8 +285,13 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 	fg := ""
 	bg := ""
 	lines := make([][]ANSILineToken, 0)
+	lineSlice := strings.Split(msg, "\n")
 
-	for _, line := range strings.Split(msg, "\n") {
+	for i, line := range lineSlice {
+		if i == len(lineSlice)-1 && (len(line) == 0 || line == "\x1b[0m") {
+			continue
+		}
+
 		tokens := make([]ANSILineToken, 0)
 		text := ""
 		colour := ""
@@ -510,4 +517,3 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 	}
 	return defaultValue
 }
-

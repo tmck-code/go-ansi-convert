@@ -11,16 +11,19 @@ import (
 )
 
 type Args struct {
-	InputFile      string
-	OutputFile     string
-	Stdin          bool
-	Stdout         bool
-	FlipHorizontal bool
-	FlipVertical   bool
-	Sanitise       bool
-	Justify        bool
-	Help           bool
-	Display        bool
+	InputFile             string
+	OutputFile            string
+	Stdin                 bool
+	Stdout                bool
+	FlipHorizontal        bool
+	FlipVertical          bool
+	Sanitise              bool
+	Justify               bool
+	Help                  bool
+	Display               bool
+	DisplaySeparator      string
+	DisplaySeparatorWidth int
+	DisplaySwapped        bool
 }
 
 func main() {
@@ -35,6 +38,9 @@ func main() {
 	getopt.BoolLong("sanitise", 's', "Sanitise ANSI lines, ensuring that each line ends with a reset code")
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
+	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
+	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
+	displaySwapped := getopt.BoolLong("display-swapped", 'x', "When displaying, reverse the order of original and flipped")
 
 	getopt.Lookup("flip").SetGroup("operation")
 	getopt.Lookup("sanitise").SetGroup("operation")
@@ -44,16 +50,19 @@ func main() {
 	getopt.Parse()
 
 	args := Args{
-		InputFile:      *inputFile,
-		OutputFile:     *outputFile,
-		Stdin:          !getopt.IsSet("input"),
-		Stdout:         !getopt.IsSet("output"),
-		FlipHorizontal: strings.Contains(*flip, "h"),
-		FlipVertical:   strings.Contains(*flip, "v"),
-		Sanitise:       getopt.IsSet("sanitise"),
-		Justify:        *justify,
-		Help:           *help,
-		Display:        *display,
+		InputFile:             *inputFile,
+		OutputFile:            *outputFile,
+		Stdin:                 !getopt.IsSet("input"),
+		Stdout:                !getopt.IsSet("output"),
+		FlipHorizontal:        strings.Contains(*flip, "h"),
+		FlipVertical:          strings.Contains(*flip, "v"),
+		Sanitise:              getopt.IsSet("sanitise"),
+		Justify:               *justify,
+		Help:                  *help,
+		Display:               *display,
+		DisplaySeparator:      *displaySep,
+		DisplaySeparatorWidth: *displaySepWidth,
+		DisplaySwapped:        *displaySwapped,
 	}
 
 	if args.Help {
@@ -61,23 +70,62 @@ func main() {
 		return
 	}
 
-	       input := readInput(args)
-	       result := process(args, input)
-	       if args.Display {
-		       displaySideBySide(input, result)
-		       return
-	       }
-	       writeOutput(args, result)
+	input := readInput(args)
+	result := process(args, input)
+
+	if args.Display {
+		if args.FlipHorizontal {
+			displaySideBySide(input, result, args)
+		} else if args.FlipVertical {
+			displayAboveBelow(input, result, args)
+		}
+	} else {
+		writeOutput(args, result)
+	}
 }
 
 // displaySideBySide prints the original and flipped result side-by-side, separated by a space
-func displaySideBySide(original, flipped string) {
+func displaySideBySide(original, flipped string, args Args) {
 	origLines := strings.Split(convert.SanitiseUnicodeString(original, true), "\n")
 	flippedLines := strings.Split(flipped, "\n")
 	for i := 0; i < len(origLines) && i < len(flippedLines); i++ {
-		left := origLines[i]
-		right := flippedLines[i]
-		fmt.Printf("%s%s %s\n", left, strings.Repeat(" ", 1), right)
+		if !args.DisplaySwapped {
+			fmt.Printf(
+				"%s%s%s\n",
+				origLines[i],
+				strings.Repeat(args.DisplaySeparator, args.DisplaySeparatorWidth),
+				flippedLines[i],
+			)
+		} else {
+			fmt.Printf(
+				"%s%s%s\n",
+				flippedLines[i],
+				strings.Repeat(args.DisplaySeparator, args.DisplaySeparatorWidth),
+				origLines[i],
+			)
+		}
+	}
+}
+
+func displayAboveBelow(original, flipped string, args Args) {
+	sep := strings.Repeat(args.DisplaySeparator, args.DisplaySeparatorWidth)
+	if sep != "" {
+		sep += "\n"
+	}
+	if !args.DisplaySwapped {
+		fmt.Printf(
+			"%s%s%s",
+			convert.SanitiseUnicodeString(original, true),
+			sep,
+			flipped,
+		)
+	} else {
+		fmt.Printf(
+			"%s%s%s",
+			flipped,
+			sep,
+			convert.SanitiseUnicodeString(original, true),
+		)
 	}
 }
 
@@ -108,21 +156,21 @@ func readFile(path string) string {
 }
 
 func process(args Args, input string) string {
-       if args.Sanitise {
-	       return convert.SanitiseUnicodeString(input, args.Justify)
-       }
-       return runFlip(input, args)
+	if args.Sanitise {
+		return convert.SanitiseUnicodeString(input, args.Justify)
+	}
+	return runFlip(input, args)
 }
 
 func runFlip(input string, args Args) string {
-       tokenized := convert.TokeniseANSIString(input)
-       if args.FlipHorizontal {
-	       tokenized = convert.FlipHorizontal(tokenized)
-       }
-       if args.FlipVertical {
-	       tokenized = convert.FlipVertical(tokenized)
-       }
-       return convert.BuildANSIString(tokenized, 0)
+	tokenized := convert.TokeniseANSIString(input)
+	if args.FlipHorizontal {
+		tokenized = convert.FlipHorizontal(tokenized)
+	}
+	if args.FlipVertical {
+		tokenized = convert.FlipVertical(tokenized)
+	}
+	return convert.BuildANSIString(tokenized, 0)
 }
 
 func writeOutput(args Args, output string) {
