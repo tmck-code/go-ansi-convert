@@ -70,22 +70,18 @@ func FlattenJSON(json string) string {
 // AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
 func AddBorder(s string, pad bool) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-
 	maxLen := convert.LongestUnicodeLineLength(lines)
-
 	result := make([]string, len(lines)+2)
-	result[0] = "╭" + strings.Repeat("─", maxLen) + "╮"
 
 	for i, line := range lines {
 		if pad {
 			visualLen := convert.UnicodeStringLength(line)
 			padding := strings.Repeat(" ", maxLen-visualLen)
-			result[i+1] = "│" + line + padding + "│"
+			result[i+1] = " " + line + padding + "┊"
 		} else {
-			result[i+1] = "│" + line + "│"
+			result[i+1] = " " + line + "┊"
 		}
 	}
-	result[len(result)-1] = "╰" + strings.Repeat("─", maxLen) + "╯"
 	return strings.Join(result, "\n") + "\n"
 }
 
