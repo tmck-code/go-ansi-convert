@@ -22,7 +22,7 @@ func TestFlipUnicodeHorizontal(test *testing.T) {
 		{
 			name:     "ASCII lowercase horizontal flip",
 			input:    []string{"abcdefghijklmnopqrstuvwxyz"},
-			expected: []string{"zγxwvuɟƨɿpqonmlʞᒑi⑁ϱᆿɘbɔdɒ"},
+			expected: []string{"zγxwvuɟƨɿpqonmlʞᒑi⑁ϱꟻɘbɔdɒ"},
 		},
 		{
 			name:     "ASCII uppercase horizontal flip",

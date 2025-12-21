@@ -12,7 +12,7 @@ var (
 		'b': 'd', 'd': 'b',
 		'c': 'ɔ', 'ɔ': 'c',
 		'e': 'ɘ', 'ɘ': 'e',
-		'f': 'ᆿ', 'ᆿ': 'f',
+		'f': 'ꟻ', // no good mirror, just use the same one as for capital 'F'
 		'g': 'ϱ', 'ϱ': 'g',
 		'h': '⑁', '⑁': 'h',
 		'j': 'ᒑ', 'ᒑ': 'j',
