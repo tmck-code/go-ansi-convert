@@ -119,6 +119,49 @@ type ANSILineToken struct {
 	T  string
 }
 
+func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
+	var optimisedLines [][]ANSILineToken
+
+	for _, tokens := range lines {
+		if len(tokens) == 0 {
+			continue
+		}
+		optimisedTokens := make([]ANSILineToken, 0)
+		currentToken := tokens[0]
+		currentBG, currentFG := currentToken.BG, currentToken.FG
+
+		for _, tok := range tokens[1:] {
+			// If the current token has the same FG and BG as the previous token, merge them
+			if tok.FG == currentFG && tok.BG == currentBG {
+				currentToken.T += tok.T
+			} else {
+				optimisedTokens = append(optimisedTokens, currentToken)
+				if tok.FG != currentFG {
+					currentFG = tok.FG
+					if tok.BG == currentBG {
+						currentToken = ANSILineToken{FG: tok.FG, BG: "", T: tok.T}
+					} else {
+						currentToken = tok
+					}
+				} else if tok.BG != currentBG {
+					currentBG = tok.BG
+					if tok.FG == currentFG {
+						currentToken = ANSILineToken{FG: "", BG: tok.BG, T: tok.T}
+					} else {
+						currentToken = tok
+					}
+				} else {
+					currentToken = tok
+				}
+			}
+		}
+		// Append the last token
+		optimisedTokens = append(optimisedTokens, currentToken)
+		optimisedLines = append(optimisedLines, optimisedTokens)
+	}
+	return optimisedLines
+}
+
 // TokeniseANSIString parses a string containing ANSI escape codes into structured tokens.
 // It splits the input by lines and then tokenizes each line, extracting foreground/background
 // colors and text segments.
