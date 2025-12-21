@@ -268,17 +268,19 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 							bg = ""
 							colour = ""
 						}
-					} else if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
+					} else if strings.Contains(colour, "[3") || strings.Contains(colour, "[9") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
+						// 30m > 37m
 						fg = colour
 						isReset = false
-					} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
+					} else if strings.Contains(colour, "[4") || strings.Contains(colour, "[10") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
+						// 40m > 47m
 						bg = colour
 						isReset = false
 					} else if strings.Contains(colour, "[0m") {
 						isReset = true
-						fg = ""
-						bg = ""
-						colour = ""
+						fg, bg, colour = "", "", ""
+					} else {
+						fmt.Printf("unhandled colour code: %q\n", colour)
 					}
 				}
 			} else {
@@ -289,6 +291,10 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 			if isReset {
 				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
 				isReset = false
+			} else if colour != "\x1b[0m" && len(tokens) > 0 && tokens[len(tokens)-1].FG == "\x1b[0m" && tokens[len(tokens)-1].T == "" {
+				// if the previous token was a reset, but didn't have any text, and this token sets a new colour,
+				// then replace the previous reset token with the new token
+				tokens[len(tokens)-1] = ANSILineToken{fg, bg, text}
 			} else {
 				// If we are setting a bg colour, but the last token didn't have one
 				// then add a background clear to the previous bg.
