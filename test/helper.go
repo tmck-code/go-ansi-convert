@@ -30,15 +30,15 @@ func Debug() bool {
 }
 
 // Fails a test with a formatted message showing the expected vs. result. (These are both printed in %#v form)
-func Fail(expected interface{}, result interface{}, test *testing.T) {
-	test.Fatalf("\n\x1b[38;5;196m%s items don't match!\x1b[0m\n> expected:\t%#v\x1b[0m\n>   result:\t%#v\x1b[0m\n\n", failMark, expected, result)
+func Fail(expected interface{}, result interface{}, t *testing.T) {
+	t.Fatalf("\n\x1b[38;5;196m%s items don't match!\x1b[0m\n> expected:\t%#v\x1b[0m\n>   result:\t%#v\x1b[0m\n\n", failMark, expected, result)
 }
 
 // Takes in an expected & result object, of any type.
 // Asserts that their Go syntax representations (%#v) are the same.
 // Prints a message on success if the ENV var DEBUG is set to "true".
 // Fails the test if this is not true.
-func Assert(expected interface{}, result interface{}, test *testing.T) {
+func Assert(expected interface{}, result interface{}, t *testing.T) {
 	expectedString, resultString := fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", result)
 	if expectedString == resultString {
 		if Debug() {
@@ -46,14 +46,14 @@ func Assert(expected interface{}, result interface{}, test *testing.T) {
 		}
 		return
 	}
-	Fail(expectedString, resultString, test)
+	Fail(expectedString, resultString, t)
 }
 
 // Takes in an expected slice of objects and an 'item' object, of any type
 // Asserts that the 'item' is contained within the slice.
 // Prints a message on success if the ENV var DEBUG is set to "true".
 // Fails the test if this is not true.
-func AssertContains[T any](slice []T, item T, test *testing.T) {
+func AssertContains[T any](slice []T, item T, t *testing.T) {
 	for _, el := range slice {
 		if reflect.DeepEqual(el, item) {
 			if Debug() {
@@ -62,7 +62,7 @@ func AssertContains[T any](slice []T, item T, test *testing.T) {
 			return
 		}
 	}
-	Fail(slice, item, test)
+	Fail(slice, item, t)
 }
 
 // Flattens a given json string, removing all tabs, spaces and newlines
@@ -114,7 +114,7 @@ func PrintSimpleTestResults(input string, expected string, result string) {
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
-func PrintANSITestResults(input string, expected, result [][]convert.ANSILineToken, test *testing.T) {
+func PrintANSITestResults(input string, expected, result [][]convert.ANSILineToken, t *testing.T) {
 	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
 	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
 	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
@@ -135,12 +135,12 @@ func PrintANSITestResults(input string, expected, result [][]convert.ANSILineTok
 			}
 			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
 			for j, token := range result[i] {
-				Assert(line[j], token, test)
+				Assert(line[j], token, t)
 				if (j + 1) < len(line) {
 					break
 				}
 			}
-			Assert(line, result[i], test)
+			Assert(line, result[i], t)
 		}
 	}
 }

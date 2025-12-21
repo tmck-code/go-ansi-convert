@@ -1,6 +1,7 @@
 package test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
@@ -188,6 +189,15 @@ func TestANSITokenise(t *testing.T) {
 				{
 					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: "Colored"},
 					convert.ANSILineToken{FG: "\x1b[0m", BG: "", T: "Plain"},
+				},
+			},
+		},
+		{
+			name:  "Consolidates multiple consecutive colour codes",
+			input: strings.Repeat("\x1b[32m ", 5),
+			expected: [][]convert.ANSILineToken{
+				{
+					convert.ANSILineToken{FG: "\x1b[32m", BG: "", T: strings.Repeat(" ", 5)},
 				},
 			},
 		},
