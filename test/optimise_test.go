@@ -14,14 +14,28 @@ func TestTokeniseRedundant(t *testing.T) {
 		expected [][]convert.ANSILineToken
 	}{
 		{
-			name:  "Tokenise consecutive identical color codes",
-			input: strings.Repeat("\x1b[0;37;46m ", 4),
+			name: "Tokenise consecutive chars with identical color codes",
+			input: strings.Join([]string{
+				"\x1b[0;37;46m 1",
+				"\x1b[0;37;46m 2",
+				"\x1b[0;37;46m 3",
+				"\x1b[0;37;46m 4",
+			}, ""),
 			expected: [][]convert.ANSILineToken{
 				{
-					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
-					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
-					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
-					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " 1"},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " 2"},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " 3"},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " 4"},
+				},
+			},
+		},
+		{
+			name:  "Tokenise consecutive identical color codes",
+			input: "\x1b[37m\x1b[0m\x1b[37m\x1b[0m\x1b[37m\x1b[0m\x1b[37m\x1b[0m\x1b[37m 123",
+			expected: [][]convert.ANSILineToken{
+				{
+					{FG: "\x1b[37m", BG: "", T: " 123"},
 				},
 			},
 		},
@@ -30,7 +44,9 @@ func TestTokeniseRedundant(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tokenised := convert.TokeniseANSIString(tc.input)
-
+			if tc.name == "Tokenise consecutive identical color codes" {
+				t.Logf("tokenised: %#v", tokenised)
+			}
 			Assert(tc.expected, tokenised, t)
 		})
 	}
@@ -106,6 +122,23 @@ func TestOptimiseANSITokens(t *testing.T) {
 				{
 					{FG: "\x1b[37m", BG: "\x1b[46m", T: "  "},
 					{FG: "\x1b[32m", BG: "\x1b[42m", T: "  "},
+				},
+			},
+		},
+		{
+			name: "Optimise redundant resets",
+			input: [][]convert.ANSILineToken{
+				{
+					{FG: "\x1b[0m", BG: "\x1b[0m", T: ""},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
+					{FG: "\x1b[0m", BG: "\x1b[0m", T: ""},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: " "},
+				},
+			},
+			expected: [][]convert.ANSILineToken{
+				{
+					{FG: "\x1b[0m", BG: "\x1b[0m", T: ""},
+					{FG: "\x1b[37m", BG: "\x1b[46m", T: "  "},
 				},
 			},
 		},
