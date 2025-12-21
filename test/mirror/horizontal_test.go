@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/test"
 )
 
 // Test ANSI line reversal -----------------------------------------------------
@@ -13,7 +14,7 @@ import (
 // - reverse individual lines
 // - reverse multiple (newline separated) lines
 
-func TestFlipUnicodeHorizontal(test *testing.T) {
+func TestFlipUnicodeHorizontal(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    []string
@@ -134,15 +135,15 @@ func TestFlipUnicodeHorizontal(test *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		test.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			strInput := strings.Join(tc.input, "\n")
 			input := convert.TokeniseANSIString(strInput)
 
 			result := convert.FlipHorizontal(input)
 			expected := convert.TokeniseANSIString(strings.Join(tc.expected, "\n"))
 
-			PrintANSITestResults(strInput, expected, result, t)
-			Assert(convert.BuildANSIString(expected, 0), convert.BuildANSIString(result, 0), t)
+			test.PrintANSITestResults(strInput, expected, result, t)
+			test.Assert(convert.BuildANSIString(expected, 0), convert.BuildANSIString(result, 0), t)
 		})
 	}
 }

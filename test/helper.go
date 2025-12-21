@@ -11,9 +11,10 @@ import (
 	"github.com/tmck-code/go-ansi-convert/src/convert"
 )
 
-type unicodeChar struct {
-	code int
-	char rune
+// UnicodeChar is an exported struct for use in other packages
+type UnicodeChar struct {
+	Code int
+	Char rune
 }
 
 var (

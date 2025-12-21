@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/test"
 )
 
 func TestFlipVertical(t *testing.T) {
@@ -139,8 +140,8 @@ func TestFlipVertical(t *testing.T) {
 				expected = append(expected, []convert.ANSILineToken{{FG: "", BG: "", T: line}})
 			}
 
-			PrintANSITestResults(strInput, expected, result, t)
-			Assert(expected, result, t)
+			test.PrintANSITestResults(strInput, expected, result, t)
+			test.Assert(expected, result, t)
 		})
 	}
 }
