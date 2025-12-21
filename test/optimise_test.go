@@ -137,7 +137,6 @@ func TestOptimiseANSITokens(t *testing.T) {
 			},
 			expected: [][]convert.ANSILineToken{
 				{
-					{FG: "\x1b[0m", BG: "\x1b[0m", T: ""},
 					{FG: "\x1b[37m", BG: "\x1b[46m", T: "  "},
 				},
 			},

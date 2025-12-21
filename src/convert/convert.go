@@ -1,6 +1,7 @@
 package convert
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
@@ -135,28 +136,67 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 			if tok.FG == currentFG && tok.BG == currentBG {
 				currentToken.T += tok.T
 			} else {
-				optimisedTokens = append(optimisedTokens, currentToken)
 				if tok.FG != currentFG {
 					currentFG = tok.FG
 					if tok.BG == currentBG {
+						optimisedTokens = append(optimisedTokens, currentToken)
 						currentToken = ANSILineToken{FG: tok.FG, BG: "", T: tok.T}
 					} else {
-						currentToken = tok
+						if currentToken.T == "" {
+							currentToken = tok
+						} else {
+							optimisedTokens = append(optimisedTokens, currentToken)
+							currentToken = tok
+						}
 					}
 				} else if tok.BG != currentBG {
 					currentBG = tok.BG
 					if tok.FG == currentFG {
+						optimisedTokens = append(optimisedTokens, currentToken)
 						currentToken = ANSILineToken{FG: "", BG: tok.BG, T: tok.T}
 					} else {
-						currentToken = tok
+						if currentToken.T == "" {
+							currentToken = tok
+						} else {
+							optimisedTokens = append(optimisedTokens, currentToken)
+							currentToken = tok
+						}
 					}
 				} else {
+					optimisedTokens = append(optimisedTokens, currentToken)
 					currentToken = tok
 				}
 			}
 		}
-		// Append the last token
-		optimisedTokens = append(optimisedTokens, currentToken)
+		if currentToken.T != "" {
+			if len(optimisedTokens) == 0 {
+				optimisedTokens = append(optimisedTokens, currentToken)
+			} else {
+				prevToken := optimisedTokens[len(optimisedTokens)-1]
+
+				if currentToken.FG == "" || currentToken.FG == prevToken.FG {
+					if currentToken.BG == prevToken.BG {
+						optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
+					} else {
+						if prevToken.T == "" {
+							optimisedTokens[len(optimisedTokens)-1] = currentToken
+						} else {
+							optimisedTokens = append(optimisedTokens, currentToken)
+						}
+					}
+				} else {
+					if currentToken.BG == prevToken.BG {
+						optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
+					} else {
+						if prevToken.T == "" {
+							optimisedTokens[len(optimisedTokens)-1] = currentToken
+						} else {
+							optimisedTokens = append(optimisedTokens, currentToken)
+						}
+					}
+				}
+			}
+		}
 		optimisedLines = append(optimisedLines, optimisedTokens)
 	}
 	return optimisedLines
