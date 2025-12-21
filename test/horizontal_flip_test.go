@@ -161,14 +161,10 @@ func TestFlipUnicodeHorizontal(test *testing.T) {
 			input := convert.TokeniseANSIString(strInput)
 
 			result := convert.FlipHorizontal(input)
-			expected := [][]convert.ANSILineToken{}
-
-			for _, line := range tc.expected {
-				expected = append(expected, []convert.ANSILineToken{{FG: "", BG: "", T: line}})
-			}
+			expected := convert.TokeniseANSIString(strings.Join(tc.expected, "\n"))
 
 			PrintANSITestResults(strInput, expected, result, t)
-			Assert(expected, result, t)
+			Assert(convert.BuildANSIString(expected, 0), convert.BuildANSIString(result, 0), t)
 		})
 	}
 }
