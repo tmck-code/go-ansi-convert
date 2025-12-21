@@ -193,11 +193,22 @@ func TestANSITokenise(t *testing.T) {
 			},
 		},
 		{
-			name:  "Consolidates multiple consecutive colour codes",
-			input: strings.Repeat("\x1b[32m ", 5),
+			name:  "Tokenises each new character with a preceding color",
+			input: strings.Repeat("\x1b[32m"+"X", 3),
 			expected: [][]convert.ANSILineToken{
 				{
-					convert.ANSILineToken{FG: "\x1b[32m", BG: "", T: strings.Repeat(" ", 5)},
+					convert.ANSILineToken{FG: "\x1b[32m", BG: "", T: "X"},
+					convert.ANSILineToken{FG: "\x1b[32m", BG: "", T: "X"},
+					convert.ANSILineToken{FG: "\x1b[32m", BG: "", T: "X"},
+				},
+			},
+		},
+		{
+			name:  "Skips tokenising colours if they are not followed by any text characters",
+			input: "\x1b[0m" + strings.Repeat("\x1b[32m", 3) + "\x1b[33m text here!",
+			expected: [][]convert.ANSILineToken{
+				{
+					convert.ANSILineToken{FG: "\x1b[33m", BG: "", T: " text here!"},
 				},
 			},
 		},
