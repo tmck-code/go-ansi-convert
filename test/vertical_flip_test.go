@@ -15,42 +15,24 @@ func TestFlipVertical(t *testing.T) {
 		expected []string
 	}{
 		{
-			name: "ASCII lowercase vertical flip",
-			input: []string{
-				"abcdefghijklmnopqrstuvwxyz",
-			},
-			expected: []string{
-				"ɐqɔpǝɟƃɥᴉɾʞlɯuodbɹsʇnʌʍxʎz",
-			},
+			name:     "ASCII lowercase vertical flip",
+			input:    []string{"abcdefghijklmnopqrstuvwxyz"},
+			expected: []string{"ɐqɔpǝɟƃɥᴉɾʞlɯuodbɹsʇnʌʍxʎz"},
 		},
 		{
-			name: "ASCII uppercase vertical flip",
-			input: []string{
-				"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-			},
-			expected: []string{
-				"∀BↃDƎℲ⅁HIſ⋊⅂WᴎOԀΌᴚS⊥∩ᴧMX⅄Z",
-			},
+			name:     "ASCII uppercase vertical flip",
+			input:    []string{"ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+			expected: []string{"∀BↃDƎℲ⅁HIſ⋊⅂WᴎOԀΌᴚS⊥∩ᴧMX⅄Z"},
 		},
 		{
-			// "█▀▀▀▐▄▐█"
-			// "█▄▄▄▐▄▐█"
-			name: "Unicode vertical flip",
-			input: []string{
-				"█▀▀▀▐▄▐█",
-			},
-			expected: []string{
-				"█▄▄▄▐▀▐█",
-			},
+			name:     "Unicode vertical flip",
+			input:    []string{"█▀▀▀▐▄▐█"},
+			expected: []string{"█▄▄▄▐▀▐█"},
 		},
 		{
-			name: "Unicode vertical flip 2",
-			input: []string{
-				"▁🭻🭺🭹🭸🭷🭶▔|🬞🬏▗▖▝▘🯤▘",
-			},
-			expected: []string{
-				"▔🭶🭷🭸🭹🭺🭻▁|🬁🬀▝▘▗▖🯥▖",
-			},
+			name:     "Unicode vertical flip 2",
+			input:    []string{"▁🭻🭺🭹🭸🭷🭶▔|🬞🬏▗▖▝▘🯤▘"},
+			expected: []string{"▔🭶🭷🭸🭹🭺🭻▁|🬁🬀▝▘▗▖🯥▖"},
 		},
 		{
 			name: "Unicode multi-line vertical flip",
