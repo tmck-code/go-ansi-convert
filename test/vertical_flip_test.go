@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -148,23 +149,27 @@ func TestFlipVertical(t *testing.T) {
 func TestVerticalMap(t *testing.T) {
 	// Check that character exists in the vertical mirror map
 	t.Run("check mapping is complete", func(t *testing.T) {
-		var missing []unicodeChar
+		missing := make([]unicodeChar, 0)
 		var found []rune
 
 		for _, r := range CompleteSet {
 			if _, exists := convert.VerticalMirrorMap[r.char]; exists {
 				found = append(found, r.char)
 			} else {
-				missing = append(missing, r)
+				if !slices.Contains(convert.VerticalSymmetricalRunes, r.char) {
+					if !slices.Contains(convert.VerticalNonMirroringRunes, r.char) {
+						missing = append(missing, r)
+					}
+				}
 			}
 		}
 
-		// for batch := range slices.Chunk(missing, 4) {
-		// 	for _, ch := range batch {
-		// 		fmt.Printf("U+%X '%c', ", ch.code, ch.char)
-		// 	}
-		// 	fmt.Println()
-		// }
+		for batch := range slices.Chunk(missing, 1) {
+			for _, ch := range batch {
+				fmt.Printf("U+%X '%c', ", ch.code, ch.char)
+			}
+			fmt.Println()
+		}
 
 		completeSetStrings := []string{}
 		for _, ch := range CompleteSet {
@@ -179,12 +184,11 @@ func TestVerticalMap(t *testing.T) {
 			completeFoundStrings = append(completeFoundStrings, fmt.Sprintf("U+%X '%c'", ch, ch))
 		}
 
-		// PrintSimpleTestResults(
-		// 	strings.Join(completeSetStrings, ", "),
-		// 	"",
-		// 	strings.Join(completeMissingStrings, ", "),
-		// )
-		// Assert(len(missing), len(CompleteSet), t)
-		// Assert(len(missing), 0, t)
+		PrintSimpleTestResults(
+			strings.Join(completeSetStrings, ", "),
+			"",
+			strings.Join(completeMissingStrings, ", "),
+		)
+		Assert(missing, make([]unicodeChar, 0), t)
 	})
 }
