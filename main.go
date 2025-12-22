@@ -38,7 +38,7 @@ func main() {
 	flip := getopt.EnumLong("flip", 'f', []string{"h", "v", "h,v", "v,h"}, "", "Flip horizontally (h), vertically (v), or both (h,v or v,h)")
 	getopt.BoolLong("sanitise", 's', "Sanitise ANSI lines, ensuring that each line ends with a reset code")
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
-	optimise := getopt.BoolLong("optimise", 0, "Optimise ANSI tokens to merge redundant color codes")
+	optimise := getopt.BoolLong("optimise", 'O', "Optimise ANSI tokens to merge redundant color codes")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
