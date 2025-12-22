@@ -1,7 +1,6 @@
 package convert
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
@@ -138,16 +137,17 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 			} else {
 				if tok.FG != currentFG {
 					currentFG = tok.FG
-					if tok.BG == currentBG {
-						optimisedTokens = append(optimisedTokens, currentToken)
-						currentToken = ANSILineToken{FG: tok.FG, BG: "", T: tok.T}
-					} else {
+					if tok.BG != currentBG {
+						currentBG = tok.BG
 						if currentToken.T == "" {
 							currentToken = tok
 						} else {
 							optimisedTokens = append(optimisedTokens, currentToken)
 							currentToken = tok
 						}
+					} else {
+						optimisedTokens = append(optimisedTokens, currentToken)
+						currentToken = ANSILineToken{FG: tok.FG, BG: "", T: tok.T}
 					}
 				} else if tok.BG != currentBG {
 					currentBG = tok.BG
@@ -186,7 +186,11 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 					}
 				} else {
 					if currentToken.BG == prevToken.BG {
-						optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
+						if currentToken.FG == prevToken.FG {
+							optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
+						} else {
+							optimisedTokens = append(optimisedTokens, currentToken)
+						}
 					} else {
 						if prevToken.T == "" {
 							optimisedTokens[len(optimisedTokens)-1] = currentToken
@@ -320,7 +324,6 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						isReset = true
 						fg, bg, colour = "", "", ""
 					} else {
-						fmt.Printf("unhandled colour code: %q\n", colour)
 					}
 				}
 			} else {
