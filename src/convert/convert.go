@@ -119,6 +119,42 @@ type ANSILineToken struct {
 	T  string
 }
 
+func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
+	var optimisedLines [][]ANSILineToken
+
+	for _, tokens := range lines {
+		if len(tokens) == 0 {
+			continue
+		}
+		var optimisedTokens []ANSILineToken
+		var lastFG, lastBG string
+
+		for _, tok := range tokens {
+			// Ignore empty reset tokens
+			if tok.FG == "\x1b[0m" && tok.T == "" {
+				continue
+			}
+			if len(optimisedTokens) > 0 && tok.FG == lastFG && tok.BG == lastBG {
+				optimisedTokens[len(optimisedTokens)-1].T += tok.T
+			} else {
+				if tok.FG != lastFG && tok.BG == lastBG {
+					// Only FG changed
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: tok.FG, BG: "", T: tok.T})
+				} else if tok.BG != lastBG && tok.FG == lastFG {
+					// Only BG changed
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: "", BG: tok.BG, T: tok.T})
+				} else {
+					// Both changed or both new
+					optimisedTokens = append(optimisedTokens, tok)
+				}
+				lastFG, lastBG = tok.FG, tok.BG
+			}
+		}
+		optimisedLines = append(optimisedLines, optimisedTokens)
+	}
+	return optimisedLines
+}
+
 // TokeniseANSIString parses a string containing ANSI escape codes into structured tokens.
 // It splits the input by lines and then tokenizes each line, extracting foreground/background
 // colors and text segments.
@@ -225,17 +261,18 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 							bg = ""
 							colour = ""
 						}
-					} else if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
+					} else if strings.Contains(colour, "[3") || strings.Contains(colour, "[9") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
+						// 30m > 37m
 						fg = colour
 						isReset = false
-					} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
+					} else if strings.Contains(colour, "[4") || strings.Contains(colour, "[10") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
+						// 40m > 47m
 						bg = colour
 						isReset = false
 					} else if strings.Contains(colour, "[0m") {
 						isReset = true
-						fg = ""
-						bg = ""
-						colour = ""
+						fg, bg, colour = "", "", ""
+					} else {
 					}
 				}
 			} else {
@@ -246,6 +283,10 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 			if isReset {
 				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
 				isReset = false
+			} else if colour != "\x1b[0m" && len(tokens) > 0 && tokens[len(tokens)-1].FG == "\x1b[0m" && tokens[len(tokens)-1].T == "" {
+				// if the previous token was a reset, but didn't have any text, and this token sets a new colour,
+				// then replace the previous reset token with the new token
+				tokens[len(tokens)-1] = ANSILineToken{fg, bg, text}
 			} else {
 				// If we are setting a bg colour, but the last token didn't have one
 				// then add a background clear to the previous bg.

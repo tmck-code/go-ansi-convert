@@ -18,6 +18,7 @@ type Args struct {
 	FlipHorizontal        bool
 	FlipVertical          bool
 	Sanitise              bool
+	Optimise              bool
 	Justify               bool
 	Help                  bool
 	Display               bool
@@ -37,6 +38,7 @@ func main() {
 	flip := getopt.EnumLong("flip", 'f', []string{"h", "v", "h,v", "v,h"}, "", "Flip horizontally (h), vertically (v), or both (h,v or v,h)")
 	getopt.BoolLong("sanitise", 's', "Sanitise ANSI lines, ensuring that each line ends with a reset code")
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
+	optimise := getopt.BoolLong("optimise", 'O', "Optimise ANSI tokens to merge redundant color codes")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
@@ -45,6 +47,7 @@ func main() {
 	getopt.Lookup("flip").SetGroup("operation")
 	getopt.Lookup("sanitise").SetGroup("operation")
 	getopt.Lookup("help").SetGroup("operation")
+	getopt.Lookup("optimise").SetGroup("operation")
 	getopt.RequiredGroup("operation")
 
 	getopt.Parse()
@@ -57,6 +60,7 @@ func main() {
 		FlipHorizontal:        strings.Contains(*flip, "h"),
 		FlipVertical:          strings.Contains(*flip, "v"),
 		Sanitise:              getopt.IsSet("sanitise"),
+		Optimise:              *optimise,
 		Justify:               *justify,
 		Help:                  *help,
 		Display:               *display,
@@ -156,6 +160,11 @@ func readFile(path string) string {
 }
 
 func process(args Args, input string) string {
+	if args.Optimise {
+		tokenized := convert.TokeniseANSIString(input)
+		optimised := convert.OptimiseANSITokens(tokenized)
+		return convert.BuildANSIString(optimised, 0)
+	}
 	if args.Sanitise {
 		return convert.SanitiseUnicodeString(input, args.Justify)
 	}
