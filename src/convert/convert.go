@@ -126,79 +126,28 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 		if len(tokens) == 0 {
 			continue
 		}
-		optimisedTokens := make([]ANSILineToken, 0)
-		currentToken := tokens[0]
-		currentBG, currentFG := currentToken.BG, currentToken.FG
+		var optimisedTokens []ANSILineToken
+		var lastFG, lastBG string
 
-		for _, tok := range tokens[1:] {
-			// If the current token has the same FG and BG as the previous token, merge them
-			if tok.FG == currentFG && tok.BG == currentBG {
-				currentToken.T += tok.T
-			} else {
-				if tok.FG != currentFG {
-					currentFG = tok.FG
-					if tok.BG != currentBG {
-						currentBG = tok.BG
-						if currentToken.T == "" {
-							currentToken = tok
-						} else {
-							optimisedTokens = append(optimisedTokens, currentToken)
-							currentToken = tok
-						}
-					} else {
-						optimisedTokens = append(optimisedTokens, currentToken)
-						currentToken = ANSILineToken{FG: tok.FG, BG: "", T: tok.T}
-					}
-				} else if tok.BG != currentBG {
-					currentBG = tok.BG
-					if tok.FG == currentFG {
-						optimisedTokens = append(optimisedTokens, currentToken)
-						currentToken = ANSILineToken{FG: "", BG: tok.BG, T: tok.T}
-					} else {
-						if currentToken.T == "" {
-							currentToken = tok
-						} else {
-							optimisedTokens = append(optimisedTokens, currentToken)
-							currentToken = tok
-						}
-					}
-				} else {
-					optimisedTokens = append(optimisedTokens, currentToken)
-					currentToken = tok
-				}
+		for _, tok := range tokens {
+			// Ignore empty reset tokens
+			if tok.FG == "\x1b[0m" && tok.T == "" {
+				continue
 			}
-		}
-		if currentToken.T != "" {
-			if len(optimisedTokens) == 0 {
-				optimisedTokens = append(optimisedTokens, currentToken)
+			if len(optimisedTokens) > 0 && tok.FG == lastFG && tok.BG == lastBG {
+				optimisedTokens[len(optimisedTokens)-1].T += tok.T
 			} else {
-				prevToken := optimisedTokens[len(optimisedTokens)-1]
-
-				if currentToken.FG == "" || currentToken.FG == prevToken.FG {
-					if currentToken.BG == prevToken.BG {
-						optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
-					} else {
-						if prevToken.T == "" {
-							optimisedTokens[len(optimisedTokens)-1] = currentToken
-						} else {
-							optimisedTokens = append(optimisedTokens, currentToken)
-						}
-					}
+				if tok.FG != lastFG && tok.BG == lastBG {
+					// Only FG changed
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: tok.FG, BG: "", T: tok.T})
+				} else if tok.BG != lastBG && tok.FG == lastFG {
+					// Only BG changed
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: "", BG: tok.BG, T: tok.T})
 				} else {
-					if currentToken.BG == prevToken.BG {
-						if currentToken.FG == prevToken.FG {
-							optimisedTokens[len(optimisedTokens)-1].T += currentToken.T
-						} else {
-							optimisedTokens = append(optimisedTokens, currentToken)
-						}
-					} else {
-						if prevToken.T == "" {
-							optimisedTokens[len(optimisedTokens)-1] = currentToken
-						} else {
-							optimisedTokens = append(optimisedTokens, currentToken)
-						}
-					}
+					// Both changed or both new
+					optimisedTokens = append(optimisedTokens, tok)
 				}
+				lastFG, lastBG = tok.FG, tok.BG
 			}
 		}
 		optimisedLines = append(optimisedLines, optimisedTokens)
