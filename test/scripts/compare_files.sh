@@ -7,21 +7,22 @@ file2="$2"
 
 n_lines=$(wc -l < "$file1")
 
-file1Title=$(printf "%-30s" "File 1: $file1")
-file2Title=$(printf "%-30s" "File 2: $file2")
+longest_file_name_length=$(( ${#file1} > ${#file2} ? ${#file1} : ${#file2} ))
+
+file1Title=$(printf "%-${longest_file_name_length}s" "$file1")
+file2Title=$(printf "%-${longest_file_name_length}s" "$file2")
 
 for i in $(seq 1 "$n_lines"); do
     clear -x
     line1=$(sed -n "${i}p" "$file1")
     line2=$(sed -n "${i}p" "$file2")
 
-    echo -e "\
-line $i/$n_lines
+    echo "line $i/$n_lines"
+    echo -ne "$file1Title: $line1"
+    echo -e "\x1b[0m\n"
 
-$file1Title: $line1\x1b[0m
+    echo -ne "$file2Title: $line2"
+    echo -e "\x1b[0m"
 
-$file2Title: $line2\x1b[0m
-
-"
     read -p "press enter to continue"
 done
