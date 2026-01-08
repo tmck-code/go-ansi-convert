@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/pborman/getopt/v2"
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 )
 
 type Args struct {
@@ -25,6 +28,7 @@ type Args struct {
 	DisplaySeparator      string
 	DisplaySeparatorWidth int
 	DisplaySwapped        bool
+	ConvertAns            bool
 }
 
 func main() {
@@ -40,10 +44,12 @@ func main() {
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
 	optimise := getopt.BoolLong("optimise", 'O', "Optimise ANSI tokens to merge redundant color codes")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
+	convertAns := getopt.BoolLong("convert-ans", 'c', "Convert an ANSI .ans file (CP437 encoded) to UTF-8 ANSI")
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
 	displaySwapped := getopt.BoolLong("display-swapped", 'x', "When displaying, reverse the order of original and flipped")
 
+	getopt.Lookup("convert-ans").SetGroup("operation")
 	getopt.Lookup("flip").SetGroup("operation")
 	getopt.Lookup("sanitise").SetGroup("operation")
 	getopt.Lookup("help").SetGroup("operation")
@@ -67,6 +73,7 @@ func main() {
 		DisplaySeparator:      *displaySep,
 		DisplaySeparatorWidth: *displaySepWidth,
 		DisplaySwapped:        *displaySwapped,
+		ConvertAns:            *convertAns,
 	}
 
 	if args.Help {
@@ -137,7 +144,7 @@ func readInput(args Args) string {
 	if args.Stdin {
 		return readStdin()
 	} else {
-		return readFile(args.InputFile)
+		return readFile(args.InputFile, args.ConvertAns)
 	}
 }
 
@@ -150,16 +157,32 @@ func readStdin() string {
 	return string(data)
 }
 
-func readFile(path string) string {
+func readFile(path string, decodeCP437 bool) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", path, err)
 		os.Exit(1)
 	}
+	
+	if decodeCP437 {
+		// Decode from CP437 to UTF-8
+		decoder := charmap.CodePage437.NewDecoder()
+		reader := transform.NewReader(bytes.NewReader(data), decoder)
+		decoded, err := io.ReadAll(reader)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error decoding CP437: %v\n", err)
+			os.Exit(1)
+		}
+		return string(decoded)
+	}
+	
 	return string(data)
 }
 
 func process(args Args, input string) string {
+	if args.ConvertAns {
+		return convert.ConvertAns(input)
+	}
 	if args.Optimise {
 		tokenized := convert.TokeniseANSIString(input)
 		optimised := convert.OptimiseANSITokens(tokenized)

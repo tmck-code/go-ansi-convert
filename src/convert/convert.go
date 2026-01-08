@@ -2,6 +2,7 @@ package convert
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -124,6 +125,8 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 
 	for _, tokens := range lines {
 		if len(tokens) == 0 {
+			// Preserve empty lines to maintain line structure
+			optimisedLines = append(optimisedLines, []ANSILineToken{})
 			continue
 		}
 		var optimisedTokens []ANSILineToken
@@ -403,44 +406,131 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 	return defaultValue
 }
 
-// ConvertAns converts legacy ANS format ANSI codes to modern format.
-// It separates combined foreground/background codes and normalizes escape sequences.
-// Reset codes (\x1b[0m) are converted to explicit white-on-black formatting with spaces.
-// Each character is output individually with its own color codes for maximum compatibility.
+// ConvertAns converts legacy ANS format ANSI codes to modern UTF-8 format.
+// It removes SAUCE metadata and adds reset codes before line endings for clean display.
+// Lines are padded to the character width specified in SAUCE (or 80 by default).
+// Long lines are wrapped at the character width boundary.
+// The ANSI codes are passed through unchanged (CP437 decoding is done in main.go).
 func ConvertAns(s string) string {
-	// Strip carriage returns (CR) to normalize line endings to LF only
+	// Default character width for ANSI art
+	charWidth := 80
+
+	// Check for SAUCE metadata and extract character width if present
+	if idx := strings.Index(s, "SAUCE00"); idx != -1 {
+		// SAUCE record is 128 bytes, character width is at offset 0x60 (96) from SAUCE00
+		// The width is stored as a 2-byte little-endian integer
+		if idx+96+2 <= len(s) {
+			// Read the 2-byte width value (little-endian)
+			widthBytes := []byte(s[idx+96 : idx+96+2])
+			width := int(widthBytes[0]) | (int(widthBytes[1]) << 8)
+			if width > 0 && width <= 1000 { // Sanity check
+				charWidth = width
+			}
+		}
+		// Remove SAUCE metadata
+		s = s[:idx]
+	}
+
+	// Remove the EOF marker (SUB character, 0x1A) that precedes SAUCE
+	s = strings.TrimRight(s, "\x1a")
+
+	// Normalize line endings to LF only
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "\n")
-	
-	// Tokenize the input string to parse ANSI codes
-	tokens := TokeniseANSIString(s)
-	
-	defaultFG := "\x1b[37m"
-	defaultBG := "\x1b[40m"
-	
-	// Convert tokens to have explicit default colors
-	for lineIdx := range tokens {
-		for tokenIdx := range tokens[lineIdx] {
-			token := &tokens[lineIdx][tokenIdx]
-			
-			// Convert reset codes to explicit default colors
-			if token.FG == "\x1b[0m" {
-				token.FG = defaultFG
-				token.BG = defaultBG
-			} else {
-				// Set defaults for empty color codes
-				if token.FG == "" {
-					token.FG = defaultFG
+
+	// Split into lines
+	lines := strings.Split(s, "\n")
+	var builder strings.Builder
+	builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
+
+	defaultColors := "\x1b[37m\x1b[40m"
+
+	// Process each line, wrapping if it exceeds charWidth
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		// Tokenize the line to separate ANSI codes from text
+		tokens := TokeniseANSIString(line)
+		if len(tokens) == 0 || len(tokens[0]) == 0 {
+			continue
+		}
+
+		lineTokens := tokens[0] // TokeniseANSIString returns [][]ANSILineToken, we want the first line
+		currentLineWidth := 0
+
+		for tokenIdx, token := range lineTokens {
+			// Start of line - add default colors
+			if currentLineWidth == 0 {
+				builder.WriteString(defaultColors)
+			}
+
+			// Write the ANSI codes (don't count toward width)
+			// Skip reset codes and background resets at line start since we just set defaults
+			if token.FG != "" && !(currentLineWidth == 0 && (token.FG == "\x1b[0m" || token.FG == "\x1b[49m")) {
+				builder.WriteString(token.FG)
+			}
+			if token.BG != "" && !(currentLineWidth == 0 && (token.BG == "\x1b[0m" || token.BG == "\x1b[49m")) {
+				builder.WriteString(token.BG)
+			}
+
+			// Process text character by character
+			text := token.T
+			for len(text) > 0 {
+				// Get the first rune and its display width
+				r, size := utf8.DecodeRuneInString(text)
+				runeWidth := runewidth.RuneWidth(r)
+
+				// Check if adding this character would exceed the line width
+				if currentLineWidth+runeWidth > charWidth {
+					// Pad remaining space on current line
+					if currentLineWidth < charWidth {
+						builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
+					}
+					// End current line
+					builder.WriteString("\x1b[0m\n")
+					// Start new line
+					builder.WriteString(defaultColors)
+					// Re-apply current colors for continuation
+					if token.FG != "" && token.FG != "\x1b[0m" {
+						builder.WriteString(token.FG)
+					}
+					if token.BG != "" {
+						builder.WriteString(token.BG)
+					}
+					currentLineWidth = 0
 				}
-				if token.BG == "" {
-					token.BG = defaultBG
+
+				// Add the character
+				builder.WriteString(text[:size])
+				currentLineWidth += runeWidth
+				text = text[size:]
+
+				// If we've reached the line width exactly, wrap to next line
+				if currentLineWidth == charWidth && (len(text) > 0 || tokenIdx < len(lineTokens)-1) {
+					builder.WriteString("\x1b[0m\n")
+					builder.WriteString(defaultColors)
+					// Re-apply current colors for continuation
+					if token.FG != "" && token.FG != "\x1b[0m" {
+						builder.WriteString(token.FG)
+					}
+					if token.BG != "" {
+						builder.WriteString(token.BG)
+					}
+					currentLineWidth = 0
 				}
 			}
 		}
+
+		// Finish the current line
+		if currentLineWidth > 0 {
+			if currentLineWidth < charWidth {
+				builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
+			}
+			builder.WriteString("\x1b[0m\n")
+		}
 	}
-	
-	// Optimize and build the result
-	optimisedTokens := OptimiseANSITokens(tokens)
-	builtString := BuildANSIString(optimisedTokens, 0)
-	return SanitiseUnicodeString(builtString, true)
+
+	return builder.String()
 }
