@@ -402,3 +402,45 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 	}
 	return defaultValue
 }
+
+// ConvertAns converts legacy ANS format ANSI codes to modern format.
+// It separates combined foreground/background codes and normalizes escape sequences.
+// Reset codes (\x1b[0m) are converted to explicit white-on-black formatting with spaces.
+// Each character is output individually with its own color codes for maximum compatibility.
+func ConvertAns(s string) string {
+	// Strip carriage returns (CR) to normalize line endings to LF only
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	
+	// Tokenize the input string to parse ANSI codes
+	tokens := TokeniseANSIString(s)
+	
+	defaultFG := "\x1b[37m"
+	defaultBG := "\x1b[40m"
+	
+	// Convert tokens to have explicit default colors
+	for lineIdx := range tokens {
+		for tokenIdx := range tokens[lineIdx] {
+			token := &tokens[lineIdx][tokenIdx]
+			
+			// Convert reset codes to explicit default colors
+			if token.FG == "\x1b[0m" {
+				token.FG = defaultFG
+				token.BG = defaultBG
+			} else {
+				// Set defaults for empty color codes
+				if token.FG == "" {
+					token.FG = defaultFG
+				}
+				if token.BG == "" {
+					token.BG = defaultBG
+				}
+			}
+		}
+	}
+	
+	// Optimize and build the result
+	optimisedTokens := OptimiseANSITokens(tokens)
+	builtString := BuildANSIString(optimisedTokens, 0)
+	return SanitiseUnicodeString(builtString, true)
+}
