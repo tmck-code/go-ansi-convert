@@ -78,6 +78,9 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 
 	var sanitised strings.Builder
 
+	// Check if the original string ends with a newline
+	originalEndsWithNewline := strings.HasSuffix(s, "\n")
+
 	for i, tokens := range tokenizedLines {
 		var lineBuilder strings.Builder
 		lineLen := 0
@@ -101,7 +104,10 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		if justifyLines && lineLen < maxLen {
 			lineBuilder.WriteString(strings.Repeat(" ", maxLen-lineLen))
 		}
-		if i < len(tokenizedLines)-1 {
+		// Only add a newline if:
+		// - This is not the last line, or
+		// - This is the last line and the original string ended with a newline
+		if i < len(tokenizedLines)-1 || originalEndsWithNewline {
 			lineBuilder.WriteString("\n")
 		}
 		sanitised.WriteString(lineBuilder.String())
