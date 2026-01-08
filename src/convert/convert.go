@@ -78,7 +78,7 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 
 	var sanitised strings.Builder
 
-	for i, tokens := range tokenizedLines {
+	for _, tokens := range tokenizedLines {
 		var lineBuilder strings.Builder
 		lineLen := 0
 		hasReset := false
@@ -101,9 +101,7 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 		if justifyLines && lineLen < maxLen {
 			lineBuilder.WriteString(strings.Repeat(" ", maxLen-lineLen))
 		}
-		if i < len(tokenizedLines)-1 {
-			lineBuilder.WriteString("\n")
-		}
+		lineBuilder.WriteString("\n")
 		sanitised.WriteString(lineBuilder.String())
 	}
 	return sanitised.String()
