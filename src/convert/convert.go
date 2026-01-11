@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/mattn/go-runewidth"
