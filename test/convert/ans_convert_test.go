@@ -1,43 +1,73 @@
 package test
 
 import (
+	"fmt"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
 	"golang.org/x/text/encoding/charmap"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/test"
 )
 
 func TestConvertAnsStrings(t *testing.T) {
 	testCases := []struct {
-		name     string
-		input    string
-		expected string
+		name           string
+		inputString    string
+		inputSAUCE     convert.SAUCE
+		expectedString string
 	}{
 		{
-			"ANSI cursor codes",
-			"\x1b[10Cxxx\r\n",
-			"\x1b[37m\x1b[40m          xxx\x1b[0m\n",
+			name:        "ANSI cursor codes",
+			inputString: "\x1b[42m\x1b[10Cxxx\n",
+			inputSAUCE: convert.SAUCE{
+				ID:       "SAUCE",
+				DataType: 1,
+				FileType: 1,
+				TInfo1: convert.TInfoField{
+					Name: "Character Width", Value: 13,
+				},
+				TInfo2: convert.TInfoField{
+					Name: "Number of lines", Value: 1,
+				},
+			},
+			expectedString: "\x1b[42m          xxx\x1b[0m\n",
+		},
+		{
+			name:        "Small single-line",
+			inputString: "\x1b[31m\x1b[40m123\x1b[36m\x1b[43mabc\x1b[0m",
+			inputSAUCE: convert.SAUCE{
+				ID:       "SAUCE",
+				DataType: 1,
+				FileType: 1,
+				TInfo1: convert.TInfoField{
+					Name: "Character Width", Value: 3,
+				},
+				TInfo2: convert.TInfoField{
+					Name: "Number of lines", Value: 2,
+				},
+			},
+			expectedString: strings.Join(
+				[]string{
+					"\x1b[31m\x1b[40m123\x1b[0m",
+					"\x1b[36m\x1b[43mabc\x1b[0m",
+					"",
+				},
+				"\n",
+			),
 		},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Convert the input
-			result := convert.ConvertAns(tc.input, convert.SAUCE{ID: "SAUCE", DataType: 1, FileType: 1, TInfo1: convert.TInfoField{Name: "Character Width", Value: 13}})
-			// Assert they match
-			// test.PrintSimpleTestResults(
-			// 	fmt.Sprintf("%q", tc.input),
-			// 	fmt.Sprintf("%q", tc.expected),
-			// 	fmt.Sprintf("%q", result),
-			// )
-			if tc.expected != result {
-				return
-				// t.Fatalf("Conversion result does not match expected output.\nExpected:\n%q\nGot:\n%q\n", tc.expected, result)
-			}
+			result := convert.ConvertAns(tc.inputString, tc.inputSAUCE)
+			test.PrintSimpleTestResults(
+				fmt.Sprintf("%+v\x1b[0m", tc.inputString),
+				fmt.Sprintf("%+v\x1b[0m", tc.expectedString),
+				fmt.Sprintf("%+v\x1b[0m", result),
+			)
+			test.Assert(tc.expectedString, result, t)
 		})
 	}
 }
@@ -53,6 +83,11 @@ func TestConvertAnsFiles(t *testing.T) {
 			"arl-evoke",
 			"../data/arl-evoke.ans",
 			"../data/arl-evoke.converted.ansi",
+		},
+		{
+			"smallTwoLines",
+			"../data/smallTwoLines.ans",
+			"../data/smallTwoLines.converted.ansi",
 		},
 		// {
 		// 	// https://16colo.rs/pack/impure89/xz-gibson.ans
@@ -98,11 +133,8 @@ func TestConvertAnsFiles(t *testing.T) {
 			}
 			result := convert.ConvertAns(input, *sauce)
 
-			if reflect.DeepEqual(expected, result) {
-				return
-			}
 			// Assert they match
-			// test.Assert(expected, result, t)
+			test.Assert(expected, result, t)
 		})
 	}
 }

@@ -48,6 +48,34 @@ func UnicodeLineLengths(lines []string) []int {
 	return lengths
 }
 
+// SplitStringByWidth splits a string at a specific display width,
+// returning (prefix, suffix) where prefix has the specified display width.
+// This respects multibyte UTF-8 characters and double-width characters.
+func SplitStringByWidth(s string, width int) (string, string) {
+	if width <= 0 {
+		return "", s
+	}
+
+	var currentWidth int
+	var splitPos int
+
+	for i, r := range s {
+		charWidth := 1
+		if r >= 128 {
+			charWidth = runewidth.RuneWidth(r)
+		}
+
+		if currentWidth+charWidth > width {
+			// Next character would exceed width, split here
+			return s[:splitPos], s[splitPos:]
+		}
+
+		currentWidth += charWidth
+		splitPos = i + len(string(r)) // Move splitPos to after this rune
+	}
+	return s, ""
+}
+
 // LongestUnicodeLineLength finds the maximum display length among all lines.
 func LongestUnicodeLineLength(lines []string) int {
 	maxLen := 0
@@ -486,22 +514,17 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 				// Token fits completely
 				adjustedLines[currLineN] = append(adjustedLines[currLineN], currToken)
 				currWidthN += currTokenLen
-			} else if currTokenLen <= targetWidth && currWidthN > 0 {
-				// Token doesn't fit on current line but would fit on a fresh line
-				// Move to next line without splitting
-				splitToken = currToken
-				splitTokenExists = true
-				currWidthN = targetWidth // Mark line as full to force moving to next line
 			} else {
-				// Token is larger than targetWidth or we're at start of line - must split
-				remainingWidth := targetWidth - currWidthN
+				// Token must be split - use width-aware splitting
+				prefix, suffix := SplitStringByWidth(currToken.T, remainingWidth)
+
 				// First part goes to current line
 				adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
-					FG: currToken.FG, BG: currToken.BG, T: currToken.T[:remainingWidth],
+					FG: currToken.FG, BG: currToken.BG, T: prefix,
 				})
 				// Remaining part will be processed in next line
 				splitToken = ANSILineToken{
-					FG: currToken.FG, BG: currToken.BG, T: currToken.T[remainingWidth:],
+					FG: currToken.FG, BG: currToken.BG, T: suffix,
 				}
 				splitTokenExists = true
 				currWidthN = targetWidth // Line is now full
@@ -512,15 +535,19 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 				break
 			}
 			if currTokenIdx >= len(lines[currTokenLineIdx]) && !splitTokenExists {
-				// check if we need to pad the line
-				if currWidthN < targetWidth {
-					adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
-						FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth-currWidthN),
-					})
-					currWidthN = targetWidth
-				}
-				break // Move to next line after padding
+				break // Move to next line - will pad below if needed
 			}
+		}
+
+		// Pad the line if it's not full (calculate actual width)
+		actualWidth := 0
+		for _, token := range adjustedLines[currLineN] {
+			actualWidth += UnicodeStringLength(token.T)
+		}
+		if actualWidth < targetWidth {
+			adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
+				FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth-actualWidth),
+			})
 		}
 
 		// Move to next line
@@ -542,7 +569,6 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 // Long lines are wrapped at the character width boundary.
 // The ANSI codes are passed through unchanged (CP437 decoding is done in main.go).
 func ConvertAns(s string, info SAUCE) string {
-
 	charWidth := 80 // Default character width for ANSI art
 	fileLines := -1
 	if info.TInfo1.Value > 0 {
@@ -552,103 +578,53 @@ func ConvertAns(s string, info SAUCE) string {
 		fileLines = int(info.TInfo2.Value) // Use number of lines from SAUCE if available
 	}
 
-	// tokenise
+	// Remove carriage returns (\r) from DOS line endings
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "")
+
+	// Tokenise the input
 	lines := TokeniseANSIString(s)
 
-	// first, ensure that all lines are the correct width
+	// Adjust line widths (wrap/pad to match target width and lines)
 	lines, err := AdjustANSILineWidths(lines, charWidth, fileLines)
 	if err != nil {
 		return ""
 	}
-	return ""
 
-	// var builder strings.Builder
-	// builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
+	// Build the output
+	var builder strings.Builder
+	builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
 
-	// defaultColors := "\x1b[37m\x1b[40m" // white fg, black bg
+	for _, line := range lines {
+		// Write the tokens for this line
+		for i, token := range line {
+			fg, bg := token.FG, token.BG
 
-	// // Process each line, wrapping if it exceeds charWidth
-	// for _, line := range lines {
+			// At line start, convert reset codes to explicit default colors
+			if i == 0 {
+				if fg == "\x1b[0m" {
+					fg = "\x1b[37m" // White foreground
+				}
+				if bg == "\x1b[0m" || bg == "\x1b[49m" || bg == "" {
+					bg = "\x1b[40m" // Black background
+				}
+			}
 
-	// 	// Tokenize the line to separate ANSI codes from text
-	// 	if len(tokens) == 0 || len(tokens[0]) == 0 {
-	// 		continue
-	// 	}
+			// Don't write double reset at end of line (from padding)
+			if i == len(line)-1 && fg == "\x1b[0m" && bg == "\x1b[0m" {
+				// This is padding token, just write text
+				builder.WriteString(token.T)
+				continue
+			}
 
-	// 	lineTokens := tokens[0] // TokeniseANSIString returns [][]ANSILineToken, we want the first line
-	// 	currentLineWidth := 0
+			builder.WriteString(fg)
+			builder.WriteString(bg)
+			builder.WriteString(token.T)
+		}
 
-	// 	for tokenIdx, token := range lineTokens {
-	// 		// Start of line - add default colors
-	// 		if currentLineWidth == 0 {
-	// 			builder.WriteString(defaultColors)
-	// 		}
+		// End each line with reset
+		builder.WriteString("\x1b[0m\n")
+	}
 
-	// 		// Write the ANSI codes (don't count toward width)
-	// 		// Skip reset codes and background resets at line start since we just set defaults
-	// 		if token.FG != "" && !(currentLineWidth == 0 && (token.FG == "\x1b[0m" || token.FG == "\x1b[49m")) {
-	// 			builder.WriteString(token.FG)
-	// 		}
-	// 		if token.BG != "" && !(currentLineWidth == 0 && (token.BG == "\x1b[0m" || token.BG == "\x1b[49m")) {
-	// 			builder.WriteString(token.BG)
-	// 		}
-
-	// 		// Process text character by character
-	// 		text := token.T
-	// 		for len(text) > 0 {
-	// 			// Get the first rune and its display width
-	// 			r, size := utf8.DecodeRuneInString(text)
-	// 			runeWidth := runewidth.RuneWidth(r)
-
-	// 			// Check if adding this character would exceed the line width
-	// 			if currentLineWidth+runeWidth > charWidth {
-	// 				// Pad remaining space on current line
-	// 				if currentLineWidth < charWidth {
-	// 					builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
-	// 				}
-	// 				// End current line
-	// 				builder.WriteString("\x1b[0m\n")
-	// 				// Start new line
-	// 				builder.WriteString(defaultColors)
-	// 				// Re-apply current colors for continuation
-	// 				if token.FG != "" && token.FG != "\x1b[0m" {
-	// 					builder.WriteString(token.FG)
-	// 				}
-	// 				if token.BG != "" {
-	// 					builder.WriteString(token.BG)
-	// 				}
-	// 				currentLineWidth = 0
-	// 			}
-
-	// 			// Add the character
-	// 			builder.WriteString(text[:size])
-	// 			currentLineWidth += runeWidth
-	// 			text = text[size:]
-
-	// 			// If we've reached the line width exactly, wrap to next line
-	// 			if currentLineWidth == charWidth && (len(text) > 0 || tokenIdx < len(lineTokens)-1) {
-	// 				builder.WriteString("\x1b[0m\n")
-	// 				builder.WriteString(defaultColors)
-	// 				// Re-apply current colors for continuation
-	// 				if token.FG != "" && token.FG != "\x1b[0m" {
-	// 					builder.WriteString(token.FG)
-	// 				}
-	// 				if token.BG != "" {
-	// 					builder.WriteString(token.BG)
-	// 				}
-	// 				currentLineWidth = 0
-	// 			}
-	// 		}
-	// 	}
-
-	// 	// Finish the current line
-	// 	if currentLineWidth > 0 {
-	// 		if currentLineWidth < charWidth {
-	// 			builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
-	// 		}
-	// 		builder.WriteString("\x1b[0m\n")
-	// 	}
-	// }
-
-	// return builder.String()
+	return builder.String()
 }
