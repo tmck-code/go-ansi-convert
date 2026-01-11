@@ -498,6 +498,10 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 				if currTokenIdx >= len(lines[currTokenLineIdx]) {
 					currTokenLineIdx++
 					currTokenIdx = 0
+					// Skip empty lines
+					for currTokenLineIdx < len(lines) && len(lines[currTokenLineIdx]) == 0 {
+						currTokenLineIdx++
+					}
 					if currTokenLineIdx >= len(lines) {
 						break
 					}
@@ -559,6 +563,15 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 		// Move to next line
 		currLineN++
 		currWidthN = 0
+	}
+
+	// If we don't have enough lines, pad with empty lines
+	if targetLinesKnown && len(adjustedLines) < targetLines {
+		for i := len(adjustedLines); i < targetLines; i++ {
+			adjustedLines = append(adjustedLines, []ANSILineToken{
+				{FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth)},
+			})
+		}
 	}
 
 	// Validate we got the expected number of lines if specified
