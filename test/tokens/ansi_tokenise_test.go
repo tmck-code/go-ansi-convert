@@ -92,19 +92,19 @@ func TestANSITokenise(t *testing.T) {
 					convert.ANSILineToken{FG: "", BG: "", T: "    "},
 					convert.ANSILineToken{FG: "", BG: "\x1b[49m", T: "   "},
 
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;142m", BG: "\u001b[48;5;16m", T: "▄▄▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;142m", BG: "\x1b[48;5;16m", T: "▄▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
 				},
 				{
 					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "     ▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;58m", BG: "\u001b[48;5;16m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;58m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;70m", T: " "},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;227m", T: "    "},
-					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;237m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;237m", BG: "\u001b[48;5;16m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\u001b[49m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;58m", BG: "\x1b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;58m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;70m", T: " "},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;227m", T: "    "},
+					convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[48;5;237m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;237m", BG: "\x1b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄"},
 				},
 			},
 		},
@@ -403,10 +403,10 @@ func TestAdjustANSILineWidths(t *testing.T) {
 			input: AdjustANSILineWidthsParams{
 				lines: [][]convert.ANSILineToken{
 					{
-						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAA"},
-						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX "},
-						convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[49m", T: "BBBBB"},
-						convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;28m", T: "YY"},
+						convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA"},
+						convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
+						convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[49m", T: "BBBBB"},
+						convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[48;5;28m", T: "YY"},
 					},
 				},
 				targetWidth: 7,
@@ -414,12 +414,12 @@ func TestAdjustANSILineWidths(t *testing.T) {
 			},
 			expected: [][]convert.ANSILineToken{
 				{
-					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAA"},
-					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX "},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAA"},
+					convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX "},
 				},
 				{
-					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[49m", T: "BBBBB"},
-					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;28m", T: "YY"},
+					convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[49m", T: "BBBBB"},
+					convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[48;5;28m", T: "YY"},
 				},
 			},
 		},
@@ -428,8 +428,8 @@ func TestAdjustANSILineWidths(t *testing.T) {
 			input: AdjustANSILineWidthsParams{
 				lines: [][]convert.ANSILineToken{
 					{
-						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAAAAAA"},
-						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX"},
+						convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[49m", T: "AAAAAAA"},
+						convert.ANSILineToken{FG: "\x1b[38;5;129m", BG: "\x1b[48;5;160m", T: " XX"},
 					},
 				},
 				targetWidth: 5,
