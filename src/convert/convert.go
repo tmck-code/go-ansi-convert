@@ -184,31 +184,30 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 			// start of colour sequence detected!
 			if ch == '\033' {
 				isColour = true
-				// if there is text in the current token buffer,
-				if text != "" {
-					// if we are setting a bg colour, but the last token didn't have one
-					// then add a background clear to the previous bg
-					if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" {
-						prevToken := tokens[len(tokens)-1]
-						tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.T}
-					}
-					if isReset {
-						tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
-						isReset = false
-					} else {
-						tokens = append(tokens, ANSILineToken{fg, bg, text})
-					}
-					colour = string(ch)
-					text = ""
-				} else {
-					colour = string(ch)
-				}
+				colour = string(ch)
 			} else if isColour {
 				// keep building the current ANSI escape code if \033 was found earlier
 				// disable the isColour bool if the end of the ANSI escape code is found
 				colour += string(ch)
-				if ch == 'm' {
+				switch ch {
+				case 'm':
 					isColour = false
+					// if there is text in the current token buffer, we need to finish it
+					if text != "" {
+						// if we are setting a bg colour, but the last token didn't have one
+						// then add a background clear to the previous bg
+						if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" {
+							prevToken := tokens[len(tokens)-1]
+							tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.T}
+						}
+						if isReset {
+							tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
+							isReset = false
+						} else {
+							tokens = append(tokens, ANSILineToken{fg, bg, text})
+						}
+						text = ""
+					}
 					// Check for 256-color or true color codes first (contains ;5; or ;2;)
 					if strings.Contains(colour, ";5;") || strings.Contains(colour, ";2;") {
 						// 256-color or true color format
@@ -277,6 +276,12 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						fg, bg, colour = "", "", ""
 					} else {
 					}
+				case 'C':
+					// Cursor forward - translate to spaces
+					isColour = false
+					numSpaces := 0
+					fmt.Sscanf(colour, "\x1b[%dC", &numSpaces)
+					text += strings.Repeat(" ", numSpaces)
 				}
 			} else {
 				text += string(ch)
