@@ -29,6 +29,8 @@ type Args struct {
 	DisplaySeparatorWidth int
 	DisplaySwapped        bool
 	ConvertAns            bool
+	DisplaySAUCEInfo      bool
+	DisplaySAUCEInfoJSON  bool
 }
 
 func main() {
@@ -44,7 +46,11 @@ func main() {
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
 	optimise := getopt.BoolLong("optimise", 'O', "Optimise ANSI tokens to merge redundant color codes")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
+
 	convertAns := getopt.BoolLong("convert-ans", 'c', "Convert an ANSI .ans file (CP437 encoded) to UTF-8 ANSI")
+	displaySAUCE := getopt.BoolLong("display-sauce", 'S', "Display SAUCE metadata from input file (if present)")
+	displaySAUCEInfoJSON := getopt.BoolLong("display-sauce-json", 0, "Display SAUCE metadata from input file in JSON format (if present)")
+
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
 	displaySwapped := getopt.BoolLong("display-swapped", 'x', "When displaying, reverse the order of original and flipped")
@@ -54,6 +60,7 @@ func main() {
 	getopt.Lookup("sanitise").SetGroup("operation")
 	getopt.Lookup("help").SetGroup("operation")
 	getopt.Lookup("optimise").SetGroup("operation")
+	getopt.Lookup("display-sauce").SetGroup("operation")
 	getopt.RequiredGroup("operation")
 
 	getopt.Parse()
@@ -74,6 +81,8 @@ func main() {
 		DisplaySeparatorWidth: *displaySepWidth,
 		DisplaySwapped:        *displaySwapped,
 		ConvertAns:            *convertAns,
+		DisplaySAUCEInfo:      *displaySAUCE,
+		DisplaySAUCEInfoJSON:  *displaySAUCEInfoJSON,
 	}
 
 	if args.Help {
@@ -82,6 +91,21 @@ func main() {
 	}
 
 	input := readInput(args)
+	if args.DisplaySAUCEInfo {
+		sauceInfo := convert.ParseSAUCE([]byte(input))
+		if args.DisplaySAUCEInfoJSON {
+			jsonStr, err := sauceInfo.ToJSON()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error converting SAUCE info to JSON: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(jsonStr)
+		} else {
+			fmt.Println(sauceInfo.ToString())
+		}
+		return
+	}
+
 	result := process(args, input)
 
 	if args.Display {
@@ -163,7 +187,7 @@ func readFile(path string, decodeCP437 bool) string {
 		fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", path, err)
 		os.Exit(1)
 	}
-	
+
 	if decodeCP437 {
 		// Decode from CP437 to UTF-8
 		decoder := charmap.CodePage437.NewDecoder()
@@ -175,7 +199,7 @@ func readFile(path string, decodeCP437 bool) string {
 		}
 		return string(decoded)
 	}
-	
+
 	return string(data)
 }
 

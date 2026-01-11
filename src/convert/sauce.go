@@ -3,6 +3,8 @@ package convert
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -78,6 +80,30 @@ type TInfoFieldNames struct {
 type TInfoField struct {
 	Name  string
 	Value uint16
+}
+
+var dataTypeNames = map[byte]string{
+	DataTypeNone:       "None",
+	DataTypeCharacter:  "Character",
+	DataTypeBitmap:     "Bitmap",
+	DataTypeVector:     "Vector",
+	DataTypeAudio:      "Audio",
+	DataTypeBinaryText: "BinaryText",
+	DataTypeXBin:       "XBin",
+	DataTypeArchive:    "Archive",
+	DataTypeExecutable: "Executable",
+}
+
+var fileTypeNames = map[byte]string{
+	FileTypeCharacterASCII:      "ASCII",
+	FileTypeCharacterANSI:       "ANSi",
+	FileTypeCharacterANSIMation: "ANSiMation",
+	FileTypeCharacterRIPScript:  "RIP Script",
+	FileTypeCharacterPCBoard:    "PCBoard",
+	FileTypeCharacterAvatar:     "Avatar",
+	FileTypeCharacterHTML:       "HTML",
+	FileTypeCharacterSource:     "Source",
+	FileTypeCharacterTundraDraw: "TundraDraw",
 }
 
 // Common TInfo field name patterns
@@ -326,4 +352,57 @@ func (s *SAUCE) IsCharacterFile() bool {
 // IsANSIFile returns true if this is an ANSI file
 func (s *SAUCE) IsANSIFile() bool {
 	return s.DataType == DataTypeCharacter && s.FileType == FileTypeCharacterANSI
+}
+
+func (s *SAUCE) ToJSON() (string, error) {
+	jsonBytes, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
+}
+
+func (s *SAUCE) ToString() string {
+	cYellow := "\033[33m"
+	cBold := "\033[1m"
+	cReset := "\033[0m"
+	cItalic := "\033[3m"
+
+	fmtStr := fmt.Sprintf("%%s%%-%ds%%s %%v\n", 10)
+
+	var sb strings.Builder
+	sb.WriteString(cYellow + cBold + "SAUCE Metadata:\n" + cReset)
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "ID:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.ID, cReset)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Version:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.Version, cReset)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Title:", cReset, s.Title))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Author:", cReset, s.Author))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Group:", cReset, s.Group))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Date:", cReset, s.Date))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "File Size:", cReset, s.FileSize))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Data Type:", cReset, fmt.Sprintf("(%v) %s", s.DataType, dataTypeNames[s.DataType])))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "File Type:", cReset, fmt.Sprintf("(%v) %s", s.FileType, fileTypeNames[s.FileType])))
+	if s.TInfo1.Name != TInfoNameNone {
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfo1:", cReset, ""))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Name:", cReset, s.TInfo1.Name))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Value:", cReset, s.TInfo1.Value))
+	}
+	if s.TInfo2.Name != TInfoNameNone {
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfo2:", cReset, ""))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Name:", cReset, s.TInfo2.Name))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Value:", cReset, s.TInfo2.Value))
+	}
+	if s.TInfo3.Name != TInfoNameNone {
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfo3:", cReset, ""))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Name:", cReset, s.TInfo3.Name))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Value:", cReset, s.TInfo3.Value))
+	}
+	if s.TInfo4.Name != TInfoNameNone {
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfo4:", cReset, ""))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Name:", cReset, s.TInfo4.Name))
+		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Value:", cReset, s.TInfo4.Value))
+	}
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Comments:", cReset, string(s.Comments)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TFlags:", cReset, string(s.TFlags)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfoS:", cReset, s.TInfoS))
+	return sb.String()
 }
