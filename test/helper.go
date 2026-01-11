@@ -144,3 +144,19 @@ func PrintANSITestResults(input string, expected, result [][]convert.ANSILineTok
 		}
 	}
 }
+
+func PrintSAUCETestResults(input string, expected, result *convert.SAUCE, t *testing.T) {
+	if Debug() {
+		eb, err := json.MarshalIndent(expected, "", "  ")
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+		fmt.Printf("%s\n%+v\x1b[0m\n", TestTitleExpected(), string(eb))
+		rb, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+		fmt.Printf("%s\n%+v\x1b[0m\n", TestTitleResult(), string(rb))
+		Assert(expected, result, t)
+	}
+}

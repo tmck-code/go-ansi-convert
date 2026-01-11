@@ -2,9 +2,11 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/test"
 )
 
 func TestParseValidSAUCE(t *testing.T) {
@@ -33,26 +35,34 @@ func TestParseValidSAUCE(t *testing.T) {
 				'I', 'B', 'M', ' ', 'V', 'G', 'A', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // TInfoS (22 bytes)
 			}...),
 			expected: &convert.SAUCE{
-				ID:         "SAUCE",
-				Version:    "00",
-				Title:      "Evoke 2025",
-				Author:     "Arlequin",
-				Group:      "Impure",
-				Date:       "20250922",
-				FileSize:   4069,
-				DataType:   convert.DataTypeCharacter,
-				FileType:   convert.FileTypeCharacterANSI,
-				TInfo1Name: "Character width",
-				TInfo2Name: "Number of lines",
-				TInfo3Name: "0",
-				TInfo4Name: "0",
-				TInfo1:     80,
-				TInfo2:     25,
-				TInfo3:     0,
-				TInfo4:     0,
-				Comments:   0,
-				TFlags:     0x04,
-				TInfoS:     "IBM VGA",
+				ID:       "SAUCE",
+				Version:  "00",
+				Title:    "Evoke 2025",
+				Author:   "Arlequin",
+				Group:    "Impure",
+				Date:     "20250922",
+				FileSize: 4069,
+				DataType: convert.DataTypeCharacter,
+				FileType: convert.FileTypeCharacterANSI,
+				TInfo1: convert.TInfoField{
+					Name:  "Character width",
+					Value: 80,
+				},
+				TInfo2: convert.TInfoField{
+					Name:  "Number of lines",
+					Value: 25,
+				},
+				TInfo3: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo4: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				Comments: 0,
+				TFlags:   0x04,
+				TInfoS:   "IBM VGA",
 			},
 		},
 		{
@@ -75,26 +85,34 @@ func TestParseValidSAUCE(t *testing.T) {
 				'I', 'B', 'M', ' ', 'V', 'G', 'A', '5', '0', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // TInfoS (22 bytes)
 			}...),
 			expected: &convert.SAUCE{
-				ID:         "SAUCE",
-				Version:    "00",
-				Title:      "Test File",
-				Author:     "Tester",
-				Group:      "",
-				Date:       "20260111",
-				FileSize:   1024,
-				DataType:   convert.DataTypeCharacter,
-				FileType:   convert.FileTypeCharacterASCII,
-				TInfo1Name: "Character width",
-				TInfo2Name: "Number of lines",
-				TInfo3Name: "0",
-				TInfo4Name: "0",
-				TInfo1:     80,
-				TInfo2:     50,
-				TInfo3:     0,
-				TInfo4:     0,
-				Comments:   0,
-				TFlags:     0x01,
-				TInfoS:     "IBM VGA50",
+				ID:       "SAUCE",
+				Version:  "00",
+				Title:    "Test File",
+				Author:   "Tester",
+				Group:    "",
+				Date:     "20260111",
+				FileSize: 1024,
+				DataType: convert.DataTypeCharacter,
+				FileType: convert.FileTypeCharacterASCII,
+				TInfo1: convert.TInfoField{
+					Name:  "Character width",
+					Value: 80,
+				},
+				TInfo2: convert.TInfoField{
+					Name:  "Number of lines",
+					Value: 50,
+				},
+				TInfo3: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo4: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				Comments: 0,
+				TFlags:   0x01,
+				TInfoS:   "IBM VGA50",
 			},
 		},
 		{
@@ -117,26 +135,34 @@ func TestParseValidSAUCE(t *testing.T) {
 				'I', 'B', 'M', ' ', 'E', 'G', 'A', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // TInfoS (22 bytes)
 			}...),
 			expected: &convert.SAUCE{
-				ID:         "SAUCE",
-				Version:    "00",
-				Title:      "BIN Screen",
-				Author:     "Artist",
-				Group:      "Crew",
-				Date:       "19950315",
-				FileSize:   4080,
-				DataType:   convert.DataTypeBinaryText,
-				FileType:   0x28,
-				TInfo1Name: "0",
-				TInfo2Name: "0",
-				TInfo3Name: "0",
-				TInfo4Name: "0",
-				TInfo1:     0,
-				TInfo2:     0,
-				TInfo3:     0,
-				TInfo4:     0,
-				Comments:   0,
-				TFlags:     0x00,
-				TInfoS:     "IBM EGA",
+				ID:       "SAUCE",
+				Version:  "00",
+				Title:    "BIN Screen",
+				Author:   "Artist",
+				Group:    "Crew",
+				Date:     "19950315",
+				FileSize: 4080,
+				DataType: convert.DataTypeBinaryText,
+				FileType: 0x28,
+				TInfo1: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo2: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo3: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo4: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				Comments: 0,
+				TFlags:   0x00,
+				TInfoS:   "IBM EGA",
 			},
 		},
 	}
@@ -145,68 +171,8 @@ func TestParseValidSAUCE(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.ParseSAUCE(tc.input)
 
-			PrintSimpleTestResults(fmt.Sprintf("%q", tc.input), fmt.Sprintf("%+v", tc.expected), fmt.Sprintf("%+v", result))
-			Assert(tc.expected, result, t)
-
-			// 		if tc.expected == nil {
-			// 			if result != nil {
-			// 				t.Errorf("ParseSAUCE() = %+v; want nil", result)
-			// 			}
-			// 			return
-			// 		}
-
-			// 		if result == nil {
-			// 			t.Fatalf("ParseSAUCE() = nil; want %+v", tc.expected)
-			// 		}
-
-			// 		if result.ID != tc.expected.ID {
-			// 			t.Errorf("ID = %q; want %q", result.ID, tc.expected.ID)
-			// 		}
-			// 		if result.Version != tc.expected.Version {
-			// 			t.Errorf("Version = %q; want %q", result.Version, tc.expected.Version)
-			// 		}
-			// 		if result.Title != tc.expected.Title {
-			// 			t.Errorf("Title = %q; want %q", result.Title, tc.expected.Title)
-			// 		}
-			// 		if result.Author != tc.expected.Author {
-			// 			t.Errorf("Author = %q; want %q", result.Author, tc.expected.Author)
-			// 		}
-			// 		if result.Group != tc.expected.Group {
-			// 			t.Errorf("Group = %q; want %q", result.Group, tc.expected.Group)
-			// 		}
-			// 		if result.Date != tc.expected.Date {
-			// 			t.Errorf("Date = %q; want %q", result.Date, tc.expected.Date)
-			// 		}
-			// 		if result.FileSize != tc.expected.FileSize {
-			// 			t.Errorf("FileSize = %d; want %d", result.FileSize, tc.expected.FileSize)
-			// 		}
-			// 		if result.DataType != tc.expected.DataType {
-			// 			t.Errorf("DataType = %d; want %d", result.DataType, tc.expected.DataType)
-			// 		}
-			// 		if result.FileType != tc.expected.FileType {
-			// 			t.Errorf("FileType = %d; want %d", result.FileType, tc.expected.FileType)
-			// 		}
-			// 		if result.TInfo1 != tc.expected.TInfo1 {
-			// 			t.Errorf("TInfo1 = %d; want %d", result.TInfo1, tc.expected.TInfo1)
-			// 		}
-			// 		if result.TInfo2 != tc.expected.TInfo2 {
-			// 			t.Errorf("TInfo2 = %d; want %d", result.TInfo2, tc.expected.TInfo2)
-			// 		}
-			// 		if result.TInfo3 != tc.expected.TInfo3 {
-			// 			t.Errorf("TInfo3 = %d; want %d", result.TInfo3, tc.expected.TInfo3)
-			// 		}
-			// 		if result.TInfo4 != tc.expected.TInfo4 {
-			// 			t.Errorf("TInfo4 = %d; want %d", result.TInfo4, tc.expected.TInfo4)
-			// 		}
-			// 		if result.Comments != tc.expected.Comments {
-			// 			t.Errorf("Comments = %d; want %d", result.Comments, tc.expected.Comments)
-			// 		}
-			// 		if result.TFlags != tc.expected.TFlags {
-			// 			t.Errorf("TFlags = 0x%02x; want 0x%02x", result.TFlags, tc.expected.TFlags)
-			// 		}
-			// 		if result.TInfoS != tc.expected.TInfoS {
-			// 			t.Errorf("TInfoS = %q; want %q", result.TInfoS, tc.expected.TInfoS)
-			// 		}
+			test.PrintSAUCETestResults(string(tc.input), tc.expected, result, t)
+			test.Assert(tc.expected, result, t)
 		})
 	}
 }
@@ -249,7 +215,64 @@ func TestParseInvalidSAUCE(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.ParseSAUCE(tc.input)
 
-			Assert(tc.expected, result, t)
+			test.PrintSAUCETestResults(string(tc.input), tc.expected, result, t)
+			test.Assert(tc.expected, result, t)
+		})
+	}
+}
+
+func TestParseSAUCEFiles(t *testing.T) {
+	testCases := []struct {
+		path     string
+		expected *convert.SAUCE
+	}{
+		{
+			"../data/arl-evoke.ans",
+			&convert.SAUCE{
+				ID:       "SAUCE",
+				Version:  "00",
+				Title:    "Evoke 2025",
+				Author:   "Arlequin",
+				Group:    "Impure",
+				Date:     "20250922",
+				FileSize: 4069,
+				DataType: convert.DataTypeCharacter,
+				FileType: convert.FileTypeCharacterANSI,
+				TInfo1: convert.TInfoField{
+					Name:  "Character width",
+					Value: 80,
+				},
+				TInfo2: convert.TInfoField{
+					Name:  "Number of lines",
+					Value: 25,
+				},
+				TInfo3: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				TInfo4: convert.TInfoField{
+					Name:  "0",
+					Value: 0,
+				},
+				Comments: 0,
+				TFlags:   0x04,
+				TInfoS:   "IBM VGA",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.path, func(t *testing.T) {
+			data, err := os.ReadFile(tc.path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", tc.path, err)
+				os.Exit(1)
+			}
+
+			result := convert.ParseSAUCE(data)
+
+			test.PrintSAUCETestResults(tc.path, tc.expected, result, t)
+			test.Assert(tc.expected, result, t)
 		})
 	}
 }
