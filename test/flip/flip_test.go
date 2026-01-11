@@ -172,6 +172,7 @@ func TestFlipHorizontal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.FlipHorizontal(convert.TokeniseANSIString(tc.input))
 			test.PrintANSITestResults(tc.input, tc.expected, result, t)
+
 			test.Assert(tc.expected, result, t)
 		})
 	}

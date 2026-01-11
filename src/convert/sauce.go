@@ -53,6 +53,19 @@ const (
 	AspectRatioModern  byte = 0x10 // 10: Modern device (square pixels)
 )
 
+// TInfo field names
+const (
+	TInfoNameNone                  = "0"
+	TInfoNameCharacterWidth        = "Character width"
+	TInfoNameNumberOfLines         = "Number of lines"
+	TInfoNameCharacterScreenHeight = "Character screen height"
+	TInfoNamePixelWidth            = "Pixel width"
+	TInfoNamePixelHeight           = "Pixel height"
+	TInfoNameNumberOfColors        = "Number of colors"
+	TInfoNamePixelDepth            = "Pixel depth"
+	TInfoNameSampleRate            = "Sample rate"
+)
+
 // TInfoFieldNames holds the semantic names for TInfo1-4 fields
 type TInfoFieldNames struct {
 	TInfo1Name string
@@ -61,115 +74,127 @@ type TInfoFieldNames struct {
 	TInfo4Name string
 }
 
+// TInfoField represents a SAUCE TInfo field with its semantic name and value
+type TInfoField struct {
+	Name  string
+	Value uint16
+}
+
+// Common TInfo field name patterns
+var (
+	tInfoNone                 = TInfoFieldNames{TInfoNameNone, TInfoNameNone, TInfoNameNone, TInfoNameNone}
+	tInfoCharacterWidthLines  = TInfoFieldNames{TInfoNameCharacterWidth, TInfoNameNumberOfLines, TInfoNameNone, TInfoNameNone}
+	tInfoCharacterWidthHeight = TInfoFieldNames{TInfoNameCharacterWidth, TInfoNameCharacterScreenHeight, TInfoNameNone, TInfoNameNone}
+	tInfoPixelDimColors       = TInfoFieldNames{TInfoNamePixelWidth, TInfoNamePixelHeight, TInfoNameNumberOfColors, TInfoNameNone}
+	tInfoPixelDimDepth        = TInfoFieldNames{TInfoNamePixelWidth, TInfoNamePixelHeight, TInfoNamePixelDepth, TInfoNameNone}
+	tInfoSampleRate           = TInfoFieldNames{TInfoNameSampleRate, TInfoNameNone, TInfoNameNone, TInfoNameNone}
+)
+
 // tInfoFieldMap maps DataType and FileType to field names
 var tInfoFieldMap = map[byte]map[byte]TInfoFieldNames{
 	DataTypeNone: {
-		0: {"0", "0", "0", "0"},
+		0: tInfoNone,
 	},
 	DataTypeCharacter: {
-		FileTypeCharacterASCII:      {"Character width", "Number of lines", "0", "0"},
-		FileTypeCharacterANSI:       {"Character width", "Number of lines", "0", "0"},
-		FileTypeCharacterANSIMation: {"Character width", "Character screen height", "0", "0"},
-		FileTypeCharacterRIPScript:  {"Pixel width", "Pixel height", "Number of colors", "0"},
-		FileTypeCharacterPCBoard:    {"Character width", "Number of lines", "0", "0"},
-		FileTypeCharacterAvatar:     {"Character width", "Number of lines", "0", "0"},
-		FileTypeCharacterHTML:       {"0", "0", "0", "0"},
-		FileTypeCharacterSource:     {"0", "0", "0", "0"},
-		FileTypeCharacterTundraDraw: {"Character width", "Number of lines", "0", "0"},
+		FileTypeCharacterASCII:      tInfoCharacterWidthLines,
+		FileTypeCharacterANSI:       tInfoCharacterWidthLines,
+		FileTypeCharacterANSIMation: tInfoCharacterWidthHeight,
+		FileTypeCharacterRIPScript:  tInfoPixelDimColors,
+		FileTypeCharacterPCBoard:    tInfoCharacterWidthLines,
+		FileTypeCharacterAvatar:     tInfoCharacterWidthLines,
+		FileTypeCharacterHTML:       tInfoNone,
+		FileTypeCharacterSource:     tInfoNone,
+		FileTypeCharacterTundraDraw: tInfoCharacterWidthLines,
 	},
 	DataTypeBitmap: {
-		0:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // GIF
-		1:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // PCX
-		2:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // LBM/IFF
-		3:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // TGA
-		4:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // FLI
-		5:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // FLC
-		6:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // BMP
-		7:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // GL
-		8:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // DL
-		9:  {"Pixel width", "Pixel height", "Pixel depth", "0"}, // WPG
-		10: {"Pixel width", "Pixel height", "Pixel depth", "0"}, // PNG
-		11: {"Pixel width", "Pixel height", "Pixel depth", "0"}, // JPG
-		12: {"Pixel width", "Pixel height", "Pixel depth", "0"}, // MPG
-		13: {"Pixel width", "Pixel height", "Pixel depth", "0"}, // AVI
+		0:  tInfoPixelDimDepth, // GIF
+		1:  tInfoPixelDimDepth, // PCX
+		2:  tInfoPixelDimDepth, // LBM/IFF
+		3:  tInfoPixelDimDepth, // TGA
+		4:  tInfoPixelDimDepth, // FLI
+		5:  tInfoPixelDimDepth, // FLC
+		6:  tInfoPixelDimDepth, // BMP
+		7:  tInfoPixelDimDepth, // GL
+		8:  tInfoPixelDimDepth, // DL
+		9:  tInfoPixelDimDepth, // WPG
+		10: tInfoPixelDimDepth, // PNG
+		11: tInfoPixelDimDepth, // JPG
+		12: tInfoPixelDimDepth, // MPG
+		13: tInfoPixelDimDepth, // AVI
 	},
 	DataTypeVector: {
-		0: {"0", "0", "0", "0"}, // DXF
-		1: {"0", "0", "0", "0"}, // DWG
-		2: {"0", "0", "0", "0"}, // WPG
-		3: {"0", "0", "0", "0"}, // 3DS
+		0: tInfoNone, // DXF
+		1: tInfoNone, // DWG
+		2: tInfoNone, // WPG
+		3: tInfoNone, // 3DS
 	},
 	DataTypeAudio: {
-		0:  {"0", "0", "0", "0"}, // MOD
-		1:  {"0", "0", "0", "0"}, // 669
-		2:  {"0", "0", "0", "0"}, // STM
-		3:  {"0", "0", "0", "0"}, // S3M
-		4:  {"0", "0", "0", "0"}, // MTM
-		5:  {"0", "0", "0", "0"}, // FAR
-		6:  {"0", "0", "0", "0"}, // ULT
-		7:  {"0", "0", "0", "0"}, // AMF
-		8:  {"0", "0", "0", "0"}, // DMF
-		9:  {"0", "0", "0", "0"}, // OKT
-		10: {"0", "0", "0", "0"}, // ROL
-		11: {"0", "0", "0", "0"}, // CMF
-		12: {"0", "0", "0", "0"}, // MID
-		13: {"0", "0", "0", "0"}, // SADT
-		14: {"0", "0", "0", "0"}, // VOC
-		15: {"0", "0", "0", "0"}, // WAV
-		16: {"Sample rate", "0", "0", "0"}, // SMP8
-		17: {"Sample rate", "0", "0", "0"}, // SMP8S
-		18: {"Sample rate", "0", "0", "0"}, // SMP16
-		19: {"Sample rate", "0", "0", "0"}, // SMP16S
-		20: {"0", "0", "0", "0"}, // PATCH8
-		21: {"0", "0", "0", "0"}, // PATCH16
-		22: {"0", "0", "0", "0"}, // XM
-		23: {"0", "0", "0", "0"}, // HSC
-		24: {"0", "0", "0", "0"}, // IT
+		0:  tInfoNone,       // MOD
+		1:  tInfoNone,       // 669
+		2:  tInfoNone,       // STM
+		3:  tInfoNone,       // S3M
+		4:  tInfoNone,       // MTM
+		5:  tInfoNone,       // FAR
+		6:  tInfoNone,       // ULT
+		7:  tInfoNone,       // AMF
+		8:  tInfoNone,       // DMF
+		9:  tInfoNone,       // OKT
+		10: tInfoNone,       // ROL
+		11: tInfoNone,       // CMF
+		12: tInfoNone,       // MID
+		13: tInfoNone,       // SADT
+		14: tInfoNone,       // VOC
+		15: tInfoNone,       // WAV
+		16: tInfoSampleRate, // SMP8
+		17: tInfoSampleRate, // SMP8S
+		18: tInfoSampleRate, // SMP16
+		19: tInfoSampleRate, // SMP16S
+		20: tInfoNone,       // PATCH8
+		21: tInfoNone,       // PATCH16
+		22: tInfoNone,       // XM
+		23: tInfoNone,       // HSC
+		24: tInfoNone,       // IT
 	},
 	DataTypeBinaryText: {
 		// FileType is variable for BinaryText (encodes width)
 	},
 	DataTypeXBin: {
-		0: {"Character width", "Number of lines", "0", "0"},
+		0: tInfoCharacterWidthLines,
 	},
 	DataTypeArchive: {
-		0: {"0", "0", "0", "0"}, // ZIP
-		1: {"0", "0", "0", "0"}, // ARJ
-		2: {"0", "0", "0", "0"}, // LZH
-		3: {"0", "0", "0", "0"}, // ARC
-		4: {"0", "0", "0", "0"}, // TAR
-		5: {"0", "0", "0", "0"}, // ZOO
-		6: {"0", "0", "0", "0"}, // RAR
-		7: {"0", "0", "0", "0"}, // UC2
-		8: {"0", "0", "0", "0"}, // PAK
-		9: {"0", "0", "0", "0"}, // SQZ
+		0: tInfoNone, // ZIP
+		1: tInfoNone, // ARJ
+		2: tInfoNone, // LZH
+		3: tInfoNone, // ARC
+		4: tInfoNone, // TAR
+		5: tInfoNone, // ZOO
+		6: tInfoNone, // RAR
+		7: tInfoNone, // UC2
+		8: tInfoNone, // PAK
+		9: tInfoNone, // SQZ
 	},
 	DataTypeExecutable: {
-		0: {"0", "0", "0", "0"},
+		0: tInfoNone,
 	},
 }
 
 type SAUCE struct {
-	ID         string // 5 bytes: Should be "SAUCE"
-	Version    string // 2 bytes: Should be "00"
-	Title      string // 35 bytes: Title of the file
-	Author     string // 20 bytes: Creator (nick)name or handle
-	Group      string // 20 bytes: Group or company name
-	Date       string // 8 bytes: CCYYMMDD format
-	FileSize   uint32 // 4 bytes: Original file size (little-endian)
-	DataType   byte   // 1 byte: Type of data
-	FileType   byte   // 1 byte: Type of file
-	TInfo1Name string // 35 bytes: Name of TInfo1 field
-	TInfo2Name string // 35 bytes: Name of TInfo2 field
-	TInfo3Name string // 35 bytes: Name of TInfo3 field
-	TInfo4Name string // 35 bytes: Name of TInfo4 field
-	TInfo1     uint16 // 2 bytes: Type dependent info (little-endian)
-	TInfo2     uint16 // 2 bytes: Type dependent info (little-endian)
-	TInfo3     uint16 // 2 bytes: Type dependent info (little-endian)
-	TInfo4     uint16 // 2 bytes: Type dependent info (little-endian)
-	Comments   byte   // 1 byte: Number of comment lines
-	TFlags     byte   // 1 byte: Type dependent flags
-	TInfoS     string // 22 bytes: Type dependent string (null-terminated)
+	ID       string     // 5 bytes: Should be "SAUCE"
+	Version  string     // 2 bytes: Should be "00"
+	Title    string     // 35 bytes: Title of the file
+	Author   string     // 20 bytes: Creator (nick)name or handle
+	Group    string     // 20 bytes: Group or company name
+	Date     string     // 8 bytes: CCYYMMDD format
+	FileSize uint32     // 4 bytes: Original file size (little-endian)
+	DataType byte       // 1 byte: Type of data
+	FileType byte       // 1 byte: Type of file
+	TInfo1   TInfoField // 2 bytes: Type dependent info (little-endian)
+	TInfo2   TInfoField // 2 bytes: Type dependent info (little-endian)
+	TInfo3   TInfoField // 2 bytes: Type dependent info (little-endian)
+	TInfo4   TInfoField // 2 bytes: Type dependent info (little-endian)
+	Comments byte       // 1 byte: Number of comment lines
+	TFlags   byte       // 1 byte: Type dependent flags
+	TInfoS   string     // 22 bytes: Type dependent string (null-terminated)
 }
 
 // ParseSAUCE parses SAUCE metadata from the last 128 bytes of data
@@ -223,35 +248,16 @@ func ParseSAUCE(data []byte) *SAUCE {
 	reader.Read(dateBytes)
 	sauce.Date = strings.TrimRight(string(dateBytes), " \x00")
 
-	// Read FileSize (4 bytes, little-endian unsigned)
-	binary.Read(reader, binary.LittleEndian, &sauce.FileSize)
-
-	// Read DataType (1 byte)
-	binary.Read(reader, binary.LittleEndian, &sauce.DataType)
-
-	// Read FileType (1 byte)
-	binary.Read(reader, binary.LittleEndian, &sauce.FileType)
-
-	// Read TInfo1 (2 bytes, little-endian)
-	binary.Read(reader, binary.LittleEndian, &sauce.TInfo1)
-
-	// Read TInfo2 (2 bytes, little-endian)
-	binary.Read(reader, binary.LittleEndian, &sauce.TInfo2)
-
-	// Read TInfo3 (2 bytes, little-endian)
-	binary.Read(reader, binary.LittleEndian, &sauce.TInfo3)
-
-	// Read TInfo4 (2 bytes, little-endian)
-	binary.Read(reader, binary.LittleEndian, &sauce.TInfo4)
-
-	// Read Comments (1 byte)
-	binary.Read(reader, binary.LittleEndian, &sauce.Comments)
-
-	// Read TFlags (1 byte)
-	binary.Read(reader, binary.LittleEndian, &sauce.TFlags)
-
-	// Read TInfoS (22 bytes) - null-terminated string
-	tinfoSBytes := make([]byte, 22)
+	binary.Read(reader, binary.LittleEndian, &sauce.FileSize)     // Read FileSize (4 bytes, little-endian unsigned)
+	binary.Read(reader, binary.LittleEndian, &sauce.DataType)     // Read DataType (1 byte)
+	binary.Read(reader, binary.LittleEndian, &sauce.FileType)     // Read FileType (1 byte)
+	binary.Read(reader, binary.LittleEndian, &sauce.TInfo1.Value) // Read TInfo1 (2 bytes, little-endian)
+	binary.Read(reader, binary.LittleEndian, &sauce.TInfo2.Value) // Read TInfo2 (2 bytes, little-endian)
+	binary.Read(reader, binary.LittleEndian, &sauce.TInfo3.Value) // Read TInfo3 (2 bytes, little-endian)
+	binary.Read(reader, binary.LittleEndian, &sauce.TInfo4.Value) // Read TInfo4 (2 bytes, little-endian)
+	binary.Read(reader, binary.LittleEndian, &sauce.Comments)     // Read Comments (1 byte)
+	binary.Read(reader, binary.LittleEndian, &sauce.TFlags)       // Read TFlags (1 byte)
+	tinfoSBytes := make([]byte, 22)                               // Read TInfoS (22 bytes) - null-terminated string
 	reader.Read(tinfoSBytes)
 	// Find the null terminator
 	nullIndex := bytes.IndexByte(tinfoSBytes, 0)
@@ -265,28 +271,28 @@ func ParseSAUCE(data []byte) *SAUCE {
 	if dataTypeMap, exists := tInfoFieldMap[sauce.DataType]; exists {
 		// For BinaryText, all field names are "0" regardless of FileType value
 		if sauce.DataType == DataTypeBinaryText {
-			sauce.TInfo1Name = "0"
-			sauce.TInfo2Name = "0"
-			sauce.TInfo3Name = "0"
-			sauce.TInfo4Name = "0"
+			sauce.TInfo1.Name = TInfoNameNone
+			sauce.TInfo2.Name = TInfoNameNone
+			sauce.TInfo3.Name = TInfoNameNone
+			sauce.TInfo4.Name = TInfoNameNone
 		} else if fieldNames, exists := dataTypeMap[sauce.FileType]; exists {
-			sauce.TInfo1Name = fieldNames.TInfo1Name
-			sauce.TInfo2Name = fieldNames.TInfo2Name
-			sauce.TInfo3Name = fieldNames.TInfo3Name
-			sauce.TInfo4Name = fieldNames.TInfo4Name
+			sauce.TInfo1.Name = fieldNames.TInfo1Name
+			sauce.TInfo2.Name = fieldNames.TInfo2Name
+			sauce.TInfo3.Name = fieldNames.TInfo3Name
+			sauce.TInfo4.Name = fieldNames.TInfo4Name
 		} else {
 			// Unknown FileType - default to "0"
-			sauce.TInfo1Name = "0"
-			sauce.TInfo2Name = "0"
-			sauce.TInfo3Name = "0"
-			sauce.TInfo4Name = "0"
+			sauce.TInfo1.Name = TInfoNameNone
+			sauce.TInfo2.Name = TInfoNameNone
+			sauce.TInfo3.Name = TInfoNameNone
+			sauce.TInfo4.Name = TInfoNameNone
 		}
 	} else {
 		// Unknown DataType - default to "0"
-		sauce.TInfo1Name = "0"
-		sauce.TInfo2Name = "0"
-		sauce.TInfo3Name = "0"
-		sauce.TInfo4Name = "0"
+		sauce.TInfo1.Name = TInfoNameNone
+		sauce.TInfo2.Name = TInfoNameNone
+		sauce.TInfo3.Name = TInfoNameNone
+		sauce.TInfo4.Name = TInfoNameNone
 	}
 
 	return sauce
