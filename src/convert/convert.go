@@ -310,6 +310,11 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					numSpaces := 0
 					fmt.Sscanf(colour, "\x1b[%dC", &numSpaces)
 					text += strings.Repeat(" ", numSpaces)
+				case 't':
+					// this indicates a "true color" ANSI code!
+					isColour = false
+				default:
+					// still in colour code
 				}
 			} else {
 				text += string(ch)
@@ -588,6 +593,7 @@ func ConvertAns(s string, info SAUCE) string {
 	// Adjust line widths (wrap/pad to match target width and lines)
 	lines, err := AdjustANSILineWidths(lines, charWidth, fileLines)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error adjusting line widths: %v\n", err)
 		return ""
 	}
 
