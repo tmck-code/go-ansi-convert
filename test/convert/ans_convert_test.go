@@ -17,13 +17,13 @@ func TestConvertAnsFiles(t *testing.T) {
 	}{
 		{
 			// https://16colo.rs/pack/impure91/arl-evoke.ans
-			"data/arl-evoke.ans",
-			"data/arl-evoke.converted.ansi",
+			"../data/arl-evoke.ans",
+			"../data/arl-evoke.converted.ansi",
 		},
 		{
 			// https://16colo.rs/pack/impure89/xz-gibson.ans
-			"data/xz-gibson.ans",
-			"data/empty_file.ansi",
+			"../data/xz-gibson.ans",
+			"../data/xz-gibson.converted.ansi",
 		},
 	}
 
