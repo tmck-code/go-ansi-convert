@@ -91,6 +91,10 @@ go build -o ansi-flip main.go
 ./ansi-flip --sanitise --justify < input.ans > output.ans
 ```
 
+### Writing any tmp/debug files
+
+Write any tmp/debug files to this repo, not /tmp/
+
 ### CI Pipeline
 GitHub Actions runs tests in Docker (see [.github/workflows/test.yml](.github/workflows/test.yml))
 - Builds `test/Dockerfile`
