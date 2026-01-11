@@ -38,11 +38,12 @@ func Fail(expected interface{}, result interface{}, t *testing.T) {
 // Asserts that their Go syntax representations (%#v) are the same.
 // Prints a message on success if the ENV var DEBUG is set to "true".
 // Fails the test if this is not true.
-func Assert(expected interface{}, result interface{}, t *testing.T) {
+// accepts an optional param "render" that acts like debug mode when set to true
+func Assert(expected interface{}, result interface{}, t *testing.T, render ...bool) {
 	expectedString, resultString := fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", result)
 	if expectedString == resultString {
-		if Debug() {
-			fmt.Printf("\x1b[38;5;46m%s items match!\x1b[0m\n> expected:\t%#v\x1b[0m\n>   result:\t%#v\x1b[0m\n\n", successMark, expected, result)
+		if Debug() || render != nil && render[0] {
+			fmt.Printf("\x1b[38;5;46m%s items match! expected/result:\x1b[0m\n\n%#v\x1b[0m\n\n", successMark, expected)
 		}
 		return
 	}
@@ -110,7 +111,7 @@ func TestTitleResult() string {
 func PrintSimpleTestResults(input string, expected string, result string) {
 	fmt.Printf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
 	fmt.Printf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
-	fmt.Printf("%s\n%v\x1b[0m\n", TestTitleResult(), AddBorder(result, false))
+	fmt.Printf("%s\n%v\x1b[0m", TestTitleResult(), AddBorder(result, false))
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.

@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -379,6 +381,86 @@ func TestANSITokenise(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.TokeniseANSIString(tc.input)
 			test.PrintANSITestResults(tc.input, tc.expected, result, t)
+			test.Assert(tc.expected, result, t)
+		})
+	}
+}
+
+type AdjustANSILineWidthsParams struct {
+	lines       [][]convert.ANSILineToken
+	targetWidth int
+	targetLines int
+}
+
+func TestAdjustANSILineWidths(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    AdjustANSILineWidthsParams
+		expected [][]convert.ANSILineToken
+	}{
+		{
+			name: "Split lines to match target width and lines",
+			input: AdjustANSILineWidthsParams{
+				lines: [][]convert.ANSILineToken{
+					{
+						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAA"},
+						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX "},
+						convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[49m", T: "BBBBB"},
+						convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;28m", T: "YY"},
+					},
+				},
+				targetWidth: 7,
+				targetLines: 2,
+			},
+			expected: [][]convert.ANSILineToken{
+				{
+					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAA"},
+					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX "},
+				},
+				{
+					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[49m", T: "BBBBB"},
+					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;28m", T: "YY"},
+				},
+			},
+		},
+		{
+			name: "Split token text if needed when adjusting line widths",
+			input: AdjustANSILineWidthsParams{
+				lines: [][]convert.ANSILineToken{
+					{
+						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAAAAAA"},
+						convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX"},
+					},
+				},
+				targetWidth: 5,
+				targetLines: 2,
+			},
+			expected: [][]convert.ANSILineToken{
+				{
+					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AAAAA"},
+				},
+				{
+					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[49m", T: "AA"},
+					convert.ANSILineToken{FG: "\u001b[38;5;129m", BG: "\u001b[48;5;160m", T: " XX"},
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := convert.AdjustANSILineWidths(tc.input.lines, tc.input.targetWidth, tc.input.targetLines)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			test.PrintSimpleTestResults(
+				tc.name,
+				fmt.Sprintf("%+v\x1b[0m", tc.expected),
+				fmt.Sprintf("%+v\x1b[0m", result),
+			)
+
+			if !reflect.DeepEqual(tc.expected, result) {
+				t.Fatalf("Results do not match expected\nExpected: %+v\x1b[0m\nResult:   %+v\x1b[0m", tc.expected, result)
+			}
 			test.Assert(tc.expected, result, t)
 		})
 	}

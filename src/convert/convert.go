@@ -1,8 +1,8 @@
 package convert
 
 import (
+	"fmt"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -421,125 +421,219 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 	return defaultValue
 }
 
+func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines int) ([][]ANSILineToken, error) {
+	targetLinesKnown := targetLines != 0
+	adjustedLines := make([][]ANSILineToken, 0)
+	currLineN, currWidthN := 0, 0
+	currTokenIdx, currTokenLineIdx := 0, 0
+
+	splitTokenExists := false
+	var splitToken ANSILineToken
+
+	// Helper to check if we've consumed all input
+	inputExhausted := func() bool {
+		return !splitTokenExists && currTokenLineIdx >= len(lines)
+	}
+
+	for !inputExhausted() && (!targetLinesKnown || currLineN < targetLines) {
+		// Ensure current line exists
+		if currLineN >= len(adjustedLines) {
+			adjustedLines = append(adjustedLines, make([]ANSILineToken, 0))
+		}
+
+		// Process tokens until we fill the current line
+		for currWidthN < targetWidth {
+			var currToken ANSILineToken
+			var currTokenLen int
+
+			// Get next token (either from split or from input)
+			if splitTokenExists {
+				currToken = splitToken
+				splitTokenExists = false
+				currTokenLen = UnicodeStringLength(splitToken.T)
+			} else {
+				// Check if we have more input
+				if currTokenLineIdx >= len(lines) {
+					break
+				}
+				if currTokenIdx >= len(lines[currTokenLineIdx]) {
+					currTokenLineIdx++
+					currTokenIdx = 0
+					if currTokenLineIdx >= len(lines) {
+						break
+					}
+				}
+				currToken = lines[currTokenLineIdx][currTokenIdx]
+				currTokenLen = UnicodeStringLength(currToken.T)
+				currTokenIdx++
+			}
+
+			// Check for too much input
+			if targetLinesKnown && currLineN >= targetLines {
+				return nil, fmt.Errorf("Too many characters for length %d and lines %d", targetWidth, targetLines)
+			}
+
+			// Calculate remaining space on current line
+			remainingWidth := targetWidth - currWidthN
+
+			// Can the current token fit in the current line?
+			if currTokenLen <= remainingWidth {
+				// Token fits completely
+				adjustedLines[currLineN] = append(adjustedLines[currLineN], currToken)
+				currWidthN += currTokenLen
+			} else if currTokenLen <= targetWidth && currWidthN > 0 {
+				// Token doesn't fit on current line but would fit on a fresh line
+				// Move to next line without splitting
+				splitToken = currToken
+				splitTokenExists = true
+				currWidthN = targetWidth // Mark line as full to force moving to next line
+			} else {
+				// Token is larger than targetWidth or we're at start of line - must split
+				remainingWidth := targetWidth - currWidthN
+				// First part goes to current line
+				adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
+					FG: currToken.FG, BG: currToken.BG, T: currToken.T[:remainingWidth],
+				})
+				// Remaining part will be processed in next line
+				splitToken = ANSILineToken{
+					FG: currToken.FG, BG: currToken.BG, T: currToken.T[remainingWidth:],
+				}
+				splitTokenExists = true
+				currWidthN = targetWidth // Line is now full
+			}
+
+			// If line is full, move to next line
+			if currWidthN >= targetWidth {
+				break
+			}
+		}
+
+		// Move to next line
+		currLineN++
+		currWidthN = 0
+	}
+
+	// Validate we got the expected number of lines if specified
+	if targetLinesKnown && len(adjustedLines) != targetLines {
+		return nil, fmt.Errorf("Expected %d lines but got %d", targetLines, len(adjustedLines))
+	}
+
+	return adjustedLines, nil
+}
+
 // ConvertAns converts legacy ANS format ANSI codes to modern UTF-8 format.
 // It removes SAUCE metadata and adds reset codes before line endings for clean display.
 // Lines are padded to the character width specified in SAUCE (or 80 by default).
 // Long lines are wrapped at the character width boundary.
 // The ANSI codes are passed through unchanged (CP437 decoding is done in main.go).
 func ConvertAns(s string, info SAUCE) string {
-	// Default character width for ANSI art
-	charWidth := 80
 
-	// Use character width from SAUCE info if available (TInfo1 for character files)
-	if info.ID == "SAUCE" && info.DataType == DataTypeCharacter && info.TInfo1.Value > 0 && info.TInfo1.Value <= 1000 {
-		charWidth = int(info.TInfo1.Value)
+	charWidth := 80 // Default character width for ANSI art
+	fileLines := -1
+	if info.TInfo1.Value > 0 {
+		charWidth = int(info.TInfo1.Value) // Use character width from SAUCE if available
+	}
+	if info.TInfo2.Value > 0 {
+		fileLines = int(info.TInfo2.Value) // Use number of lines from SAUCE if available
 	}
 
-	// Remove SAUCE metadata if present
-	if idx := strings.Index(s, "SAUCE00"); idx != -1 {
-		s = s[:idx]
+	// tokenise
+	lines := TokeniseANSIString(s)
+
+	// first, ensure that all lines are the correct width
+	lines, err := AdjustANSILineWidths(lines, charWidth, fileLines)
+	if err != nil {
+		return ""
 	}
+	return ""
 
-	// Remove the EOF marker (SUB character, 0x1A) that precedes SAUCE
-	s = strings.TrimRight(s, "\x1a")
+	// var builder strings.Builder
+	// builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
 
-	// Normalize line endings to LF only
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	s = strings.ReplaceAll(s, "\r", "\n")
+	// defaultColors := "\x1b[37m\x1b[40m" // white fg, black bg
 
-	// Split into lines
-	lines := strings.Split(s, "\n")
-	var builder strings.Builder
-	builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
+	// // Process each line, wrapping if it exceeds charWidth
+	// for _, line := range lines {
 
-	defaultColors := "\x1b[37m\x1b[40m"
+	// 	// Tokenize the line to separate ANSI codes from text
+	// 	if len(tokens) == 0 || len(tokens[0]) == 0 {
+	// 		continue
+	// 	}
 
-	// Process each line, wrapping if it exceeds charWidth
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
+	// 	lineTokens := tokens[0] // TokeniseANSIString returns [][]ANSILineToken, we want the first line
+	// 	currentLineWidth := 0
 
-		// Tokenize the line to separate ANSI codes from text
-		tokens := TokeniseANSIString(line)
-		if len(tokens) == 0 || len(tokens[0]) == 0 {
-			continue
-		}
+	// 	for tokenIdx, token := range lineTokens {
+	// 		// Start of line - add default colors
+	// 		if currentLineWidth == 0 {
+	// 			builder.WriteString(defaultColors)
+	// 		}
 
-		lineTokens := tokens[0] // TokeniseANSIString returns [][]ANSILineToken, we want the first line
-		currentLineWidth := 0
+	// 		// Write the ANSI codes (don't count toward width)
+	// 		// Skip reset codes and background resets at line start since we just set defaults
+	// 		if token.FG != "" && !(currentLineWidth == 0 && (token.FG == "\x1b[0m" || token.FG == "\x1b[49m")) {
+	// 			builder.WriteString(token.FG)
+	// 		}
+	// 		if token.BG != "" && !(currentLineWidth == 0 && (token.BG == "\x1b[0m" || token.BG == "\x1b[49m")) {
+	// 			builder.WriteString(token.BG)
+	// 		}
 
-		for tokenIdx, token := range lineTokens {
-			// Start of line - add default colors
-			if currentLineWidth == 0 {
-				builder.WriteString(defaultColors)
-			}
+	// 		// Process text character by character
+	// 		text := token.T
+	// 		for len(text) > 0 {
+	// 			// Get the first rune and its display width
+	// 			r, size := utf8.DecodeRuneInString(text)
+	// 			runeWidth := runewidth.RuneWidth(r)
 
-			// Write the ANSI codes (don't count toward width)
-			// Skip reset codes and background resets at line start since we just set defaults
-			if token.FG != "" && !(currentLineWidth == 0 && (token.FG == "\x1b[0m" || token.FG == "\x1b[49m")) {
-				builder.WriteString(token.FG)
-			}
-			if token.BG != "" && !(currentLineWidth == 0 && (token.BG == "\x1b[0m" || token.BG == "\x1b[49m")) {
-				builder.WriteString(token.BG)
-			}
+	// 			// Check if adding this character would exceed the line width
+	// 			if currentLineWidth+runeWidth > charWidth {
+	// 				// Pad remaining space on current line
+	// 				if currentLineWidth < charWidth {
+	// 					builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
+	// 				}
+	// 				// End current line
+	// 				builder.WriteString("\x1b[0m\n")
+	// 				// Start new line
+	// 				builder.WriteString(defaultColors)
+	// 				// Re-apply current colors for continuation
+	// 				if token.FG != "" && token.FG != "\x1b[0m" {
+	// 					builder.WriteString(token.FG)
+	// 				}
+	// 				if token.BG != "" {
+	// 					builder.WriteString(token.BG)
+	// 				}
+	// 				currentLineWidth = 0
+	// 			}
 
-			// Process text character by character
-			text := token.T
-			for len(text) > 0 {
-				// Get the first rune and its display width
-				r, size := utf8.DecodeRuneInString(text)
-				runeWidth := runewidth.RuneWidth(r)
+	// 			// Add the character
+	// 			builder.WriteString(text[:size])
+	// 			currentLineWidth += runeWidth
+	// 			text = text[size:]
 
-				// Check if adding this character would exceed the line width
-				if currentLineWidth+runeWidth > charWidth {
-					// Pad remaining space on current line
-					if currentLineWidth < charWidth {
-						builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
-					}
-					// End current line
-					builder.WriteString("\x1b[0m\n")
-					// Start new line
-					builder.WriteString(defaultColors)
-					// Re-apply current colors for continuation
-					if token.FG != "" && token.FG != "\x1b[0m" {
-						builder.WriteString(token.FG)
-					}
-					if token.BG != "" {
-						builder.WriteString(token.BG)
-					}
-					currentLineWidth = 0
-				}
+	// 			// If we've reached the line width exactly, wrap to next line
+	// 			if currentLineWidth == charWidth && (len(text) > 0 || tokenIdx < len(lineTokens)-1) {
+	// 				builder.WriteString("\x1b[0m\n")
+	// 				builder.WriteString(defaultColors)
+	// 				// Re-apply current colors for continuation
+	// 				if token.FG != "" && token.FG != "\x1b[0m" {
+	// 					builder.WriteString(token.FG)
+	// 				}
+	// 				if token.BG != "" {
+	// 					builder.WriteString(token.BG)
+	// 				}
+	// 				currentLineWidth = 0
+	// 			}
+	// 		}
+	// 	}
 
-				// Add the character
-				builder.WriteString(text[:size])
-				currentLineWidth += runeWidth
-				text = text[size:]
+	// 	// Finish the current line
+	// 	if currentLineWidth > 0 {
+	// 		if currentLineWidth < charWidth {
+	// 			builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
+	// 		}
+	// 		builder.WriteString("\x1b[0m\n")
+	// 	}
+	// }
 
-				// If we've reached the line width exactly, wrap to next line
-				if currentLineWidth == charWidth && (len(text) > 0 || tokenIdx < len(lineTokens)-1) {
-					builder.WriteString("\x1b[0m\n")
-					builder.WriteString(defaultColors)
-					// Re-apply current colors for continuation
-					if token.FG != "" && token.FG != "\x1b[0m" {
-						builder.WriteString(token.FG)
-					}
-					if token.BG != "" {
-						builder.WriteString(token.BG)
-					}
-					currentLineWidth = 0
-				}
-			}
-		}
-
-		// Finish the current line
-		if currentLineWidth > 0 {
-			if currentLineWidth < charWidth {
-				builder.WriteString(strings.Repeat(" ", charWidth-currentLineWidth))
-			}
-			builder.WriteString("\x1b[0m\n")
-		}
-	}
-
-	return builder.String()
+	// return builder.String()
 }
