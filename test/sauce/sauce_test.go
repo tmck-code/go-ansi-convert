@@ -169,7 +169,11 @@ func TestParseValidSAUCE(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := convert.ParseSAUCE(tc.input)
+			result, _, err := convert.ParseSAUCE(tc.input)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
+				os.Exit(1)
+			}
 
 			test.PrintSAUCETestResults(string(tc.input), tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
@@ -181,17 +185,17 @@ func TestParseInvalidSAUCE(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    []byte
-		expected *convert.SAUCE
+		expected string
 	}{
 		{
 			name:     "No SAUCE present",
 			input:    []byte("This is just regular data without SAUCE metadata at the end"),
-			expected: nil,
+			expected: "data too short to contain SAUCE record",
 		},
 		{
 			name:     "Data too short",
 			input:    []byte("Short"),
-			expected: nil,
+			expected: "data too short to contain SAUCE record",
 		},
 		{
 			name: "Invalid ID",
@@ -207,15 +211,19 @@ func TestParseInvalidSAUCE(t *testing.T) {
 				0x00, 0x00, // Comments, TFlags
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // TInfoS (22 bytes)
 			}...),
-			expected: nil,
+			expected: "no valid SAUCE record found",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := convert.ParseSAUCE(tc.input)
+			_, _, err := convert.ParseSAUCE(tc.input)
+			var result string
+			if err != nil {
+				result = err.Error()
+			}
 
-			test.PrintSAUCETestResults(string(tc.input), tc.expected, result, t)
+			test.PrintSimpleTestResults(string(tc.input), tc.expected, result)
 			test.Assert(tc.expected, result, t)
 		})
 	}
@@ -269,7 +277,11 @@ func TestParseSAUCEFiles(t *testing.T) {
 				os.Exit(1)
 			}
 
-			result := convert.ParseSAUCE(data)
+			result, _, err := convert.ParseSAUCE(data)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error parsing SAUCE from file %s: %v\n", tc.path, err)
+				os.Exit(1)
+			}
 
 			test.PrintSAUCETestResults(tc.path, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)

@@ -90,9 +90,12 @@ func main() {
 		return
 	}
 
-	input := readInput(args)
 	if args.DisplaySAUCEInfo {
-		sauceInfo := convert.ParseSAUCE([]byte(input))
+		sauceInfo, _, err := convert.ParseSAUCEFromFile(args.InputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
+			os.Exit(1)
+		}
 		if args.DisplaySAUCEInfoJSON {
 			jsonStr, err := sauceInfo.ToJSON()
 			if err != nil {
@@ -106,6 +109,7 @@ func main() {
 		return
 	}
 
+	input := readInput(args)
 	result := process(args, input)
 
 	if args.Display {
@@ -205,7 +209,12 @@ func readFile(path string, decodeCP437 bool) string {
 
 func process(args Args, input string) string {
 	if args.ConvertAns {
-		return convert.ConvertAns(input)
+		sauce, fileData, err := convert.ParseSAUCEFromFile(args.InputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
+			os.Exit(1)
+		}
+		return convert.ConvertAns(fileData, *sauce)
 	}
 	if args.Optimise {
 		tokenized := convert.TokeniseANSIString(input)

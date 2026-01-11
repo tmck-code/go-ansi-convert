@@ -5,7 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 // SAUCE data types
@@ -223,16 +226,34 @@ type SAUCE struct {
 	TInfoS   string     // 22 bytes: Type dependent string (null-terminated)
 }
 
+func ParseSAUCEFromFile(path string) (*SAUCE, string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("error reading file %s: %v", path, err)
+	}
+	return ParseSAUCE(data)
+}
+
 // ParseSAUCE parses SAUCE metadata from the last 128 bytes of data
 // Returns nil if no valid SAUCE record is found
-func ParseSAUCE(data []byte) *SAUCE {
+func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 	// SAUCE record is always 128 bytes at the end of the file
 	if len(data) < 128 {
-		return nil
+		return nil, "", fmt.Errorf("data too short to contain SAUCE record")
 	}
 
 	// Read the last 128 bytes
 	sauceData := data[len(data)-128:]
+	// read the rest of the file data, converting from cp437 to utf8
+	// fileData := data[:len(data)-128]
+	decoder := charmap.CodePage437.NewDecoder()
+	decodedFileData, err := decoder.Bytes(data[:len(data)-128])
+	var fileData []byte
+	if err != nil {
+		fileData = data[:len(data)-128]
+	} else {
+		fileData = decodedFileData
+	}
 
 	// Create a reader for binary data
 	reader := bytes.NewReader(sauceData)
@@ -246,7 +267,7 @@ func ParseSAUCE(data []byte) *SAUCE {
 
 	// Check if this is a valid SAUCE record
 	if sauce.ID != "SAUCE" {
-		return nil
+		return nil, "", fmt.Errorf("no valid SAUCE record found")
 	}
 
 	// Read Version (2 bytes)
@@ -321,7 +342,7 @@ func ParseSAUCE(data []byte) *SAUCE {
 		sauce.TInfo4.Name = TInfoNameNone
 	}
 
-	return sauce
+	return sauce, string(fileData), nil
 }
 
 // HasNonBlinkMode returns true if the iCE Color flag is set (ANSi files)
