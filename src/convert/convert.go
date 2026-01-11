@@ -350,7 +350,7 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 		revTokens := make([]ANSILineToken, 0)
 		// ensure vertical alignment
 		padding := maxWidth - widths[idx]
-		
+
 		// Reverse and mirror tokens
 		for i := len(tokens) - 1; i >= 0; i-- {
 			revTokens = append(revTokens, ANSILineToken{
@@ -359,7 +359,7 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 				T:  MirrorHorizontally(tokens[i].T),
 			})
 		}
-		
+
 		// If padding is needed, prepend it to the first token if colors match, otherwise create new token
 		if padding > 0 {
 			paddingStr := strings.Repeat(" ", padding)
@@ -371,7 +371,7 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 				revTokens = append([]ANSILineToken{{FG: "", BG: "", T: paddingStr}}, revTokens...)
 			}
 		}
-		
+
 		linesRev[idx] = revTokens
 	}
 	return linesRev
@@ -426,23 +426,17 @@ func getOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
 // Lines are padded to the character width specified in SAUCE (or 80 by default).
 // Long lines are wrapped at the character width boundary.
 // The ANSI codes are passed through unchanged (CP437 decoding is done in main.go).
-func ConvertAns(s string) string {
+func ConvertAns(s string, info SAUCE) string {
 	// Default character width for ANSI art
 	charWidth := 80
 
-	// Check for SAUCE metadata and extract character width if present
+	// Use character width from SAUCE info if available (TInfo1 for character files)
+	if info.ID == "SAUCE" && info.DataType == DataTypeCharacter && info.TInfo1.Value > 0 && info.TInfo1.Value <= 1000 {
+		charWidth = int(info.TInfo1.Value)
+	}
+
+	// Remove SAUCE metadata if present
 	if idx := strings.Index(s, "SAUCE00"); idx != -1 {
-		// SAUCE record is 128 bytes, character width is at offset 0x60 (96) from SAUCE00
-		// The width is stored as a 2-byte little-endian integer
-		if idx+96+2 <= len(s) {
-			// Read the 2-byte width value (little-endian)
-			widthBytes := []byte(s[idx+96 : idx+96+2])
-			width := int(widthBytes[0]) | (int(widthBytes[1]) << 8)
-			if width > 0 && width <= 1000 { // Sanity check
-				charWidth = width
-			}
-		}
-		// Remove SAUCE metadata
 		s = s[:idx]
 	}
 
