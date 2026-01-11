@@ -26,7 +26,8 @@ var (
 // To do this, either first run `export DEBUG=true`, and then run the test command,
 // or do it all at once with `DEBUG=true go test -v ./test“
 func Debug() bool {
-	return os.Getenv("DEBUG") == "true"
+	debugValue := os.Getenv("DEBUG")
+	return debugValue == "true" || debugValue == "1"
 }
 
 // Fails a test with a formatted message showing the expected vs. result. (These are both printed in %#v form)
