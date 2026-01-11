@@ -454,7 +454,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 			} else {
 				// Check if we have more input
 				if currTokenLineIdx >= len(lines) {
-					break
+					return nil, fmt.Errorf("Not enough input to fill lines, current: %d, total: %d", currLineN, len(lines))
 				}
 				if currTokenIdx >= len(lines[currTokenLineIdx]) {
 					currTokenLineIdx++
@@ -505,6 +505,16 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 			// If line is full, move to next line
 			if currWidthN >= targetWidth {
 				break
+			}
+			if currTokenIdx >= len(lines[currTokenLineIdx]) && !splitTokenExists {
+				// check if we need to pad the line
+				if currWidthN < targetWidth {
+					adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
+						FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth-currWidthN),
+					})
+					currWidthN = targetWidth
+				}
+				break // Move to next line after padding
 			}
 		}
 
