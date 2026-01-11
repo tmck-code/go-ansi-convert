@@ -244,6 +244,7 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 
 	// Read the last 128 bytes
 	sauceData := data[len(data)-128:]
+
 	// read the rest of the file data, converting from cp437 to utf8
 	// fileData := data[:len(data)-128]
 	decoder := charmap.CodePage437.NewDecoder()
@@ -254,6 +255,8 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 	} else {
 		fileData = decodedFileData
 	}
+	// strip the \x1a EOF character if present
+	fileData = bytes.TrimRight(fileData, "\x1a")
 
 	// Create a reader for binary data
 	reader := bytes.NewReader(sauceData)
