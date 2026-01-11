@@ -5,30 +5,34 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/text/encoding/charmap"
+
 	"github.com/tmck-code/go-ansi-convert/src/convert"
 	"github.com/tmck-code/go-ansi-convert/test"
-	"golang.org/x/text/encoding/charmap"
 )
 
 func TestConvertAnsFiles(t *testing.T) {
 	testCases := []struct {
+		name          string
 		inputFpath    string
 		expectedFpath string
 	}{
 		{
 			// https://16colo.rs/pack/impure91/arl-evoke.ans
+			"arl-evoke",
 			"../data/arl-evoke.ans",
 			"../data/arl-evoke.converted.ansi",
 		},
 		{
 			// https://16colo.rs/pack/impure89/xz-gibson.ans
+			"xz-gibson",
 			"../data/xz-gibson.ans",
 			"../data/xz-gibson.converted.ansi",
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.inputFpath, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			// Read the original .ans file in CP437 encoding
 
 			inputBytes, err := os.ReadFile(tc.inputFpath)
