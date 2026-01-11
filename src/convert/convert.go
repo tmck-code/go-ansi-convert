@@ -347,9 +347,11 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 	}
 
 	for idx, tokens := range lines {
-		revTokens := make([]ANSILineToken, 1)
+		revTokens := make([]ANSILineToken, 0)
 		// ensure vertical alignment
-		revTokens[0] = ANSILineToken{FG: "", BG: "", T: strings.Repeat(" ", maxWidth-widths[idx])}
+		padding := maxWidth - widths[idx]
+		
+		// Reverse and mirror tokens
 		for i := len(tokens) - 1; i >= 0; i-- {
 			revTokens = append(revTokens, ANSILineToken{
 				FG: tokens[i].FG,
@@ -357,6 +359,19 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 				T:  MirrorHorizontally(tokens[i].T),
 			})
 		}
+		
+		// If padding is needed, prepend it to the first token if colors match, otherwise create new token
+		if padding > 0 {
+			paddingStr := strings.Repeat(" ", padding)
+			if len(revTokens) > 0 && revTokens[0].FG == "" && revTokens[0].BG == "" {
+				// First token has no colors, prepend padding to its text
+				revTokens[0] = ANSILineToken{FG: "", BG: "", T: paddingStr + revTokens[0].T}
+			} else {
+				// First token has colors or no tokens exist, add padding as separate token
+				revTokens = append([]ANSILineToken{{FG: "", BG: "", T: paddingStr}}, revTokens...)
+			}
+		}
+		
 		linesRev[idx] = revTokens
 	}
 	return linesRev
