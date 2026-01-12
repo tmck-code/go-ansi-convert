@@ -391,11 +391,11 @@ func TestTokeniseANSIFile(t *testing.T) {
 		expected [][]convert.ANSILineToken
 	}{
 		{
-			name:     "Test file 1",
+			name:     "File with empty lines",
 			filepath: "../data/bhe-peaceofmind.txt",
 			expected: [][]convert.ANSILineToken{
-				{{FG: "", BG: "", T: "                                                "}},
-				{{FG: "", BG: "", T: "                                                "}},
+				{{FG: "", BG: "", T: ""}},
+				{{FG: "", BG: "", T: ""}},
 				{{FG: "", BG: "", T: "                              .                ."}},
 				{{FG: "", BG: "", T: "                              .       /\\       ."}},
 				{{FG: "", BG: "", T: "                              :     _/  \\_     :"}},
@@ -449,12 +449,7 @@ func TestTokeniseANSIFile(t *testing.T) {
 				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
 			}
 			result := convert.TokeniseANSIString(string(data))
-			test.PrintANSITestResults(
-				data,
-				tc.expected,
-				result,
-				t,
-			)
+			test.PrintANSITestResults(data, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
 		})
 	}

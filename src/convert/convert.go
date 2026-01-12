@@ -318,9 +318,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					// still in colour code
 				}
 			} else {
-				if ch != '\r' {
-					text += string(ch)
-				}
+				text += string(ch)
 			}
 		}
 		if colour != "" || text != "" {
@@ -341,6 +339,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 				}
 				tokens = append(tokens, ANSILineToken{fg, bg, text})
 			}
+		}
+		if len(tokens) > 0 {
+			tokens[len(tokens)-1].T = strings.TrimSuffix(tokens[len(tokens)-1].T, "\r")
 		}
 		lines = append(lines, tokens)
 	}
@@ -498,13 +499,22 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 					return nil, fmt.Errorf("Not enough input to fill lines, current: %d, total: %d", currLineN, len(lines))
 				}
 				if currTokenIdx >= len(lines[currTokenLineIdx]) {
+					// Check if current input line is empty before moving to next
+					if len(lines[currTokenLineIdx]) == 0 {
+						// Empty line - move to next input line and break to pad current output line
+						currTokenLineIdx++
+						currTokenIdx = 0
+						break
+					}
+					// Move to next input line
 					currTokenLineIdx++
 					currTokenIdx = 0
 					if currTokenLineIdx >= len(lines) {
 						break
 					}
-					// If the new line is empty, break to pad current line
+					// If the new line is also empty, consume it and break to pad current line
 					if len(lines[currTokenLineIdx]) == 0 {
+						currTokenLineIdx++
 						break
 					}
 				}
