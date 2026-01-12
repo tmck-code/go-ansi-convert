@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/pborman/getopt/v2"
+	"github.com/tmck-code/go-ansi-convert/src"
 	"github.com/tmck-code/go-ansi-convert/src/convert"
 	"github.com/tmck-code/go-ansi-convert/src/parse"
 	"golang.org/x/text/encoding/charmap"
@@ -33,6 +34,12 @@ type Args struct {
 	DisplaySAUCEInfo      bool
 	DisplaySAUCEInfoJSON  bool
 	DetectEncoding        bool
+}
+
+// Check DEBUG mode, enables debug logging
+func Debug() bool {
+	debugValue := os.Getenv("DEBUG")
+	return debugValue == "true" || debugValue == "1"
 }
 
 func main() {
@@ -98,7 +105,7 @@ func main() {
 	if args.DetectEncoding {
 		data, err := os.ReadFile(args.InputFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", args.InputFile, err)
+			src.DebugFprintf("Error reading file %s: %v\n", args.InputFile, err)
 			os.Exit(1)
 		}
 		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", parse.DetectEncoding(data))
@@ -108,13 +115,13 @@ func main() {
 	if args.DisplaySAUCEInfo {
 		sauceInfo, _, err := convert.ParseSAUCEFromFile(args.InputFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
+			src.DebugFprintf("Error parsing SAUCE record: %v\n", err)
 			os.Exit(1)
 		}
 		if args.DisplaySAUCEInfoJSON {
 			jsonStr, err := sauceInfo.ToJSON()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error converting SAUCE info to JSON: %v\n", err)
+				src.DebugFprintf("Error converting SAUCE info to JSON: %v\n", err)
 				os.Exit(1)
 			}
 			fmt.Println(jsonStr)
@@ -194,7 +201,7 @@ func readInput(args Args) string {
 func readStdin() string {
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
+		src.DebugFprintf("Error reading stdin: %v\n", err)
 		os.Exit(1)
 	}
 	return string(data)
@@ -203,7 +210,7 @@ func readStdin() string {
 func readFile(path string, decodeCP437 bool) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", path, err)
+		src.DebugFprintf("Error reading file %s: %v\n", path, err)
 		os.Exit(1)
 	}
 
@@ -213,7 +220,7 @@ func readFile(path string, decodeCP437 bool) string {
 		reader := transform.NewReader(bytes.NewReader(data), decoder)
 		decoded, err := io.ReadAll(reader)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error decoding CP437: %v\n", err)
+			src.DebugFprintf("Error decoding CP437: %v\n", err)
 			os.Exit(1)
 		}
 		return string(decoded)
@@ -228,10 +235,10 @@ func process(args Args, input string) string {
 		var fileData string
 		sauce, fileData, err := convert.ParseSAUCEFromFile(args.InputFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
+			src.DebugFprintf("Error parsing SAUCE record: %v\n", err)
 			sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating SAUCE record: %v\n", err)
+				src.DebugFprintf("Error creating SAUCE record: %v\n", err)
 				os.Exit(1)
 			}
 		}
@@ -270,7 +277,7 @@ func writeOutput(args Args, output string) {
 func writeFile(path string, content string) {
 	err := os.WriteFile(path, []byte(content), 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", path, err)
+		src.DebugFprintf("Error writing file %s: %v\n", path, err)
 		os.Exit(1)
 	}
 }
