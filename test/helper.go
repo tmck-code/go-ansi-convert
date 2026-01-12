@@ -40,10 +40,10 @@ func Fail(expected interface{}, result interface{}, t *testing.T) {
 // Prints a message on success if the ENV var DEBUG is set to "true".
 // Fails the test if this is not true.
 // accepts an optional param "render" that acts like debug mode when set to true
-func Assert(expected interface{}, result interface{}, t *testing.T, render ...bool) {
+func Assert(expected interface{}, result interface{}, t *testing.T) {
 	expectedString, resultString := fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", result)
 	if expectedString == resultString {
-		if Debug() || render != nil && render[0] {
+		if Debug() {
 			fmt.Printf("\x1b[38;5;46m%s items match! expected/result:\x1b[0m\n\n%#v\x1b[0m\n\n", successMark, expected)
 		}
 		return
