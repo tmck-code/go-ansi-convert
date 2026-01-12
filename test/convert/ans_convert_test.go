@@ -56,6 +56,18 @@ func TestConvertAnsStrings(t *testing.T) {
 				"\n",
 			),
 		},
+		{
+			name:        "Line with truecolor codes",
+			inputString: "\x1b[69C\x1b[1m\x1b[1;224;224;224t_\x1b[0m\x1b[1;168;168;168t.\x1b[1m\x1b[1;224;224;224txxXXx...\x1b[0m\x1b[1;168;168;168t \x1b[1m\x1b[1;224;224;224txXXX/\x1b[0m\x1b[1;168;168;168tXXXxxxXXxxx.",
+			inputSAUCE: convert.SAUCE{
+				ID:       "SAUCE",
+				DataType: 1,
+				FileType: 1,
+				TInfo1:   convert.TInfoField{Name: "Character Width", Value: 170},
+				TInfo2:   convert.TInfoField{Name: "Number of lines", Value: 1},
+			},
+			expectedString: "                                                                     \x1b[1m\x1b[38;2;224;224;224m_\x1b[0m\x1b[38;2;168;168;168m.\x1b[1m\x1b[38;2;224;224;224mxxXXx...\x1b[0m\x1b[38;2;168;168;168m \x1b[1m\x1b[38;2;224;224;224mxXXX/\x1b[0m\x1b[38;2;168;168;168mXXXxxxXXxxx.                                                                         \x1b[0m",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
