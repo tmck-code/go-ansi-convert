@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/parse"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
@@ -345,7 +346,7 @@ func TestParseFileDataWithEncoding(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Error reading file %s: %v\n", tc.path, err)
 			}
-			result := convert.DetectEncoding(data)
+			result := parse.DetectEncoding(data)
 			test.PrintSimpleTestResults(tc.path, tc.expectedEncoding, result, t)
 			test.Assert(tc.expectedEncoding, result, t)
 

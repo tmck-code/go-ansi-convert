@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/parse"
 )
 
 // UnicodeChar is an exported struct for use in other packages
@@ -78,12 +79,12 @@ func FlattenJSON(json string) string {
 // AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
 func AddBorder(s string, pad bool) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-	maxLen := convert.LongestUnicodeLineLength(lines)
+	maxLen := parse.LongestUnicodeLineLength(lines)
 	result := make([]string, len(lines)+2)
 
 	for i, line := range lines {
 		if pad {
-			visualLen := convert.UnicodeStringLength(line)
+			visualLen := parse.UnicodeStringLength(line)
 			padding := strings.Repeat(" ", maxLen-visualLen)
 			result[i+1] = " " + line + padding + "┊"
 		} else {

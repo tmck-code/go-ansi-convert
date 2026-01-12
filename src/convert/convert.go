@@ -6,48 +6,8 @@ import (
 	"strings"
 
 	"github.com/mattn/go-runewidth"
+	"github.com/tmck-code/go-ansi-convert/src/parse"
 )
-
-// UnicodeStringLength calculates the display length of a string, accounting for:
-// - Unicode characters that are double-width (e.g., CJK characters, emojis)
-// - ANSI escape codes (which don't contribute to display width)
-// Returns the total display width of the string.
-func UnicodeStringLength(s string) int {
-	nRunes, totalLen, ansiCode := len(s), 0, false
-
-	for i, r := range s {
-		if i < nRunes-1 {
-			// detect the beginning of an ANSI escape code
-			// e.g. "\x1b[38;5;196m"
-			//       ^^^ start    ^ end
-			if s[i:i+2] == "\x1b[" {
-				ansiCode = true
-			}
-		}
-		if ansiCode {
-			// detect the end of an ANSI escape code
-			if r == 'm' {
-				ansiCode = false
-			}
-		} else {
-			if r < 128 {
-				// if ascii, then use width of 1. this saves some time
-				totalLen++
-			} else {
-				totalLen += runewidth.RuneWidth(r)
-			}
-		}
-	}
-	return totalLen
-}
-
-func UnicodeLineLengths(lines []string) []int {
-	lengths := make([]int, len(lines))
-	for i, line := range lines {
-		lengths[i] = UnicodeStringLength(line)
-	}
-	return lengths
-}
 
 // SplitStringByWidth splits a string at a specific display width,
 // returning (prefix, suffix) where prefix has the specified display width.
@@ -77,17 +37,6 @@ func SplitStringByWidth(s string, width int) (string, string) {
 	return s, ""
 }
 
-// LongestUnicodeLineLength finds the maximum display length among all lines.
-func LongestUnicodeLineLength(lines []string) int {
-	maxLen := 0
-	for _, line := range UnicodeLineLengths(lines) {
-		if line > maxLen {
-			maxLen = line
-		}
-	}
-	return maxLen
-}
-
 // SanitiseUnicodeString cleans up ANSI codes in a string and optionally justifies lines.
 // It ensures all lines end with a reset code and pads lines to equal width if justifyLines is true.
 func SanitiseUnicodeString(s string, justifyLines bool) string {
@@ -103,7 +52,7 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 	// Calculate max length if justification is needed
 	maxLen := 0
 	if justifyLines {
-		maxLen = LongestUnicodeLineLength(strings.Split(s, "\n"))
+		maxLen = parse.LongestUnicodeLineLength(strings.Split(s, "\n"))
 	}
 
 	var sanitised strings.Builder
@@ -116,7 +65,7 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 			lineBuilder.WriteString(token.FG)
 			lineBuilder.WriteString(token.BG)
 			lineBuilder.WriteString(token.T)
-			lineLen += UnicodeStringLength(token.T)
+			lineLen += parse.UnicodeStringLength(token.T)
 			if token.FG == "\x1b[0m" {
 				hasReset = true
 			} else if token.FG != "" || token.BG != "" {
@@ -187,7 +136,10 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 	return optimisedLines
 }
 
-// TokeniseANSIString parses a string containing ANSI escape codes into structured tokens.
+// TokeniseANSIString
+//
+//	a string containing ANSI escape codes into structured tokens.
+//
 // It splits the input by lines and then tokenizes each line, extracting foreground/background
 // colors and text segments.
 // Returns a 2D slice where each inner slice represents tokens for one line.
@@ -423,7 +375,7 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 	for idx, l := range lines {
 		lineWidth := 0
 		for _, token := range l {
-			lineWidth += UnicodeStringLength(token.T)
+			lineWidth += parse.UnicodeStringLength(token.T)
 		}
 		if lineWidth > maxWidth {
 			maxWidth = lineWidth
@@ -535,7 +487,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 			if splitTokenExists {
 				currToken = splitToken
 				splitTokenExists = false
-				currTokenLen = UnicodeStringLength(splitToken.T)
+				currTokenLen = parse.UnicodeStringLength(splitToken.T)
 			} else {
 				// Check if we have more input
 				if currTokenLineIdx >= len(lines) {
@@ -562,7 +514,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 					}
 				}
 				currToken = lines[currTokenLineIdx][currTokenIdx]
-				currTokenLen = UnicodeStringLength(currToken.T)
+				currTokenLen = parse.UnicodeStringLength(currToken.T)
 				currTokenIdx++
 			}
 
@@ -607,7 +559,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 		// Pad the line if it's not full (calculate actual width)
 		actualWidth := 0
 		for _, token := range adjustedLines[currLineN] {
-			actualWidth += UnicodeStringLength(token.T)
+			actualWidth += parse.UnicodeStringLength(token.T)
 		}
 		if actualWidth < targetWidth {
 			adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{

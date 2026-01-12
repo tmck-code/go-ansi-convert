@@ -9,6 +9,7 @@ import (
 
 	"github.com/pborman/getopt/v2"
 	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/parse"
 	"golang.org/x/text/encoding/charmap"
 	"golang.org/x/text/transform"
 )
@@ -100,7 +101,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", args.InputFile, err)
 			os.Exit(1)
 		}
-		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", convert.DetectEncoding(data))
+		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", parse.DetectEncoding(data))
 		return
 	}
 
@@ -223,10 +224,16 @@ func readFile(path string, decodeCP437 bool) string {
 
 func process(args Args, input string) string {
 	if args.ConvertAns {
+		var sauce *convert.SAUCE
+		var fileData string
 		sauce, fileData, err := convert.ParseSAUCEFromFile(args.InputFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
-			os.Exit(1)
+			sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating SAUCE record: %v\n", err)
+				os.Exit(1)
+			}
 		}
 		return convert.ConvertAns(fileData, *sauce)
 	}
