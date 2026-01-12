@@ -10,7 +10,7 @@ All ANSI operations work on **tokenized representations**, not raw strings:
 - Raw ANSI string → `TokeniseANSIString()` → `[][]ANSILineToken` → operations → `BuildANSIString()` → output
 - Each `ANSILineToken` has: `FG` (foreground), `BG` (background), `T` (text content)
 - ANSI codes are separated from text for independent manipulation
-- See [src/convert/convert.go](src/convert/convert.go) lines 112-320 for tokenization logic
+- See [src/ansi-convert/convert/convert.go](src/ansi-convert/convert/convert.go) lines 112-320 for tokenization logic
 
 #### Tokenization Algorithm Details
 The tokenizer is a **character-by-character state machine**:
@@ -31,14 +31,14 @@ The project handles **double-width characters** (CJK, emojis, box-drawing chars)
 - Use `UnicodeStringLength()` instead of `len()` for display width calculations
 - Uses `github.com/mattn/go-runewidth` to calculate actual terminal width
 - Critical for flipping/justifying: characters like `▄▀█` may have width > 1
-- Example in [src/convert/convert.go](src/convert/convert.go) lines 9-38
+- Example in [src/ansi-convert/convert/convert.go](src/ansi-convert/convert/convert.go) lines 9-38
 
 ### Character Mirroring Maps
 Horizontal/vertical flips include **character substitution** via lookup tables:
 - `HorizontalMirrorMap`: `'<'` ↔ `'>'`, `'d'` ↔ `'b'`, `'/'` ↔ `'\'`, etc.
 - `VerticalMirrorMap`: `'▀'` ↔ `'▄'`, etc.
 - Maps are bidirectional (both directions defined)
-- See [src/convert/mirror.go](src/convert/mirror.go) for complete mappings
+- See [src/ansi-convert/convert/mirror.go](src/ansi-convert/convert/mirror.go) for complete mappings
 
 ### Color State Management
 ANSI color tracking is stateful and complex:
@@ -50,7 +50,7 @@ ANSI color tracking is stateful and complex:
 ## Testing Patterns
 
 ### Test Structure
-- Tests live in `test/*` subdirectories (not `src/convert/*_test.go`)
+- Tests live in `test/*` subdirectories (not `src/ansi-convert/convert/*_test.go`)
 - Use table-driven tests with `expected [][]convert.ANSILineToken` format
 - Run with `DEBUG=true go test -v ./test/...` to see token-level comparisons
 
@@ -187,6 +187,6 @@ expected: [][]convert.ANSILineToken{
 
 ## Key Files Reference
 - [main.go](main.go): CLI argument parsing (uses `github.com/pborman/getopt/v2`)
-- [src/convert/convert.go](src/convert/convert.go): Core tokenization, flip, sanitize logic
-- [src/convert/mirror.go](src/convert/mirror.go): Character mirroring lookup tables
+- [src/ansi-convert/convert/convert.go](src/ansi-convert/convert/convert.go): Core tokenization, flip, sanitize logic
+- [src/ansi-convert/convert/mirror.go](src/ansi-convert/convert/mirror.go): Character mirroring lookup tables
 - [test/helper.go](test/helper.go): Test utilities and formatting

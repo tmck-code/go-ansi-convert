@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/convert"
-	"github.com/tmck-code/go-ansi-convert/src/parse"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
 // UnicodeChar is an exported struct for use in other packages

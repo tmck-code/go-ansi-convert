@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tmck-code/go-ansi-convert/src/parse"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
 // SAUCE data types

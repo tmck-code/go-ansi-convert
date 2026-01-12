@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/tmck-code/go-ansi-convert/src"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -26,7 +26,7 @@ func DetectEncoding(data []byte) string {
 		_, err = encoder.Bytes(CP437Translated)
 		// if that failed, then it's definitely cp437
 		if err != nil {
-			src.DebugFprintln("  - translation from CP437 to ISO-8859-1 failed!!")
+			log.DebugFprintln("  - translation from CP437 to ISO-8859-1 failed!!")
 			pointsForCP437 += 1
 		}
 	}
@@ -41,7 +41,7 @@ func DetectEncoding(data []byte) string {
 		_, err = encoder.Bytes(ISOTranslated)
 		// if that failed, then it's definitely iso-8859-1
 		if err != nil {
-			src.DebugFprintln("  - translation from ISO-8859-1 to CP437 failed!!")
+			log.DebugFprintln("  - translation from ISO-8859-1 to CP437 failed!!")
 			pointsForISO += 1
 		}
 	}
@@ -53,13 +53,13 @@ func DetectEncoding(data []byte) string {
 		isoCount := bytes.Count(ISOTranslated, ch)
 
 		if cp437Count > isoCount {
-			src.DebugFprintf("  - char %q: orig=%d, \x1b[91mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, \x1b[91mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
 			pointsForISO += 1
 		} else if isoCount > cp437Count {
-			src.DebugFprintf("  - char %q: orig=%d, cp437=%d, \x1b[91miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, cp437=%d, \x1b[91miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
 			pointsForCP437 += 1
 		} else {
-			src.DebugFprintf("  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
 		}
 	}
 	// having more of these chars is usually good
@@ -70,23 +70,23 @@ func DetectEncoding(data []byte) string {
 		isoCount := bytes.Count(ISOTranslated, ch)
 
 		if cp437Count > isoCount {
-			src.DebugFprintf("  - char %q: orig=%d, \x1b[92mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, \x1b[92mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
 			pointsForCP437 += 1
 		} else if isoCount > cp437Count {
-			src.DebugFprintf("  - char %q: orig=%d, cp437=%d, \x1b[92miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, cp437=%d, \x1b[92miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
 			pointsForISO += 1
 		} else {
-			src.DebugFprintf("  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
 		}
 	}
-	src.DebugFprintf("Points:\n- CP437:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+	log.DebugFprintf("Points:\n- CP437:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
 
 	if pointsForCP437 > pointsForISO {
 		return "cp437"
 	} else if pointsForISO > pointsForCP437 {
 		return "iso-8859-1"
 	}
-	src.DebugFprintln("Unable to detect encoding, assuming ASCII")
+	log.DebugFprintln("Unable to detect encoding, assuming ASCII")
 	return "ascii"
 }
 
@@ -107,7 +107,7 @@ func DecodeFileContents(data []byte, encoding string) (string, error) {
 	reader := charMap.NewDecoder().Reader(bytes.NewReader(data))
 	decodedData, err := io.ReadAll(reader)
 	if err != nil {
-		src.DebugFprintln("Error decoding data:", err)
+		log.DebugFprintln("Error decoding data:", err)
 		return "", err
 	}
 	return string(decodedData), nil

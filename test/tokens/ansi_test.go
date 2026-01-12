@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/parse"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
