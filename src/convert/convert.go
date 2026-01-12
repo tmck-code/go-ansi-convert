@@ -196,7 +196,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 	isReset := false
 	fg := ""
 	bg := ""
-	styleModifier := "" // Track style modifiers like \x1b[1m (bold)
+	styleModifier := ""          // Track style modifiers like \x1b[1m (bold)
 	hadStyleBeforeReset := false // Track if there was a style modifier before the last reset
 	lines := make([][]ANSILineToken, 0)
 	lineSlice := strings.Split(msg, "\n")
@@ -241,7 +241,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						}
 						text = ""
 					}
-					
+
 					// Check for 256-color or true color codes first (contains ;5; or ;2;)
 					if strings.Contains(colour, ";5;") || strings.Contains(colour, ";2;") {
 						// Clear the reset flag - we're setting a new color
@@ -656,6 +656,8 @@ func ConvertAns(s string, info SAUCE) string {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\r", "")
 
+	hasTrailingNewline := strings.HasSuffix(s, "\n")
+
 	// Tokenise the input
 	lines := TokeniseANSIString(s)
 
@@ -700,7 +702,12 @@ func ConvertAns(s string, info SAUCE) string {
 		if lineIdx < len(lines)-1 {
 			builder.WriteString("\x1b[0m\n")
 		} else {
-			builder.WriteString("\x1b[0m")
+			fmt.Println("Has trailing newline:", hasTrailingNewline)
+			if hasTrailingNewline {
+				builder.WriteString("\x1b[0m\n")
+			} else {
+				builder.WriteString("\x1b[0m")
+			}
 		}
 	}
 

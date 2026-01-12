@@ -31,7 +31,7 @@ func TestConvertAnsStrings(t *testing.T) {
 					Name: "Number of lines", Value: 1,
 				},
 			},
-			expectedString: "\x1b[42m          xxx\x1b[0m",
+			expectedString: "\x1b[42m          xxx\x1b[0m\n",
 		},
 		{
 			name:        "Small single-line",
