@@ -44,7 +44,7 @@ func Assert(expected interface{}, result interface{}, t *testing.T) {
 	expectedString, resultString := fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", result)
 	if expectedString == resultString {
 		if Debug() {
-			fmt.Printf("\x1b[38;5;46m%s items match! expected/result:\x1b[0m\n\n%#v\x1b[0m\n\n", successMark, expected)
+			t.Logf("\x1b[38;5;46m%s items match! expected/result:\x1b[0m\n\n%#v\x1b[0m\n\n", successMark, expected)
 		}
 		return
 	}
@@ -59,7 +59,7 @@ func AssertContains[T any](slice []T, item T, t *testing.T) {
 	for _, el := range slice {
 		if reflect.DeepEqual(el, item) {
 			if Debug() {
-				fmt.Printf("%s found expected item!\n>  item:\t%v\n> slice:\t%v\n", successMark, item, slice)
+				t.Logf("%s found expected item!\n>  item:\t%v\n> slice:\t%v\n", successMark, item, slice)
 			}
 			return
 		}
@@ -109,33 +109,33 @@ func TestTitleResult() string {
 }
 
 // PrintSimpleTestResults prints formatted test results for simple tests (with quoted output).
-func PrintSimpleTestResults(input string, expected string, result string) {
-	fmt.Printf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
-	fmt.Printf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
-	fmt.Printf("%s\n%v\x1b[0m", TestTitleResult(), AddBorder(result, false))
+func PrintSimpleTestResults(input string, expected string, result string, t *testing.T) {
+	t.Logf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	t.Logf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
+	t.Logf("%s\n%v\x1b[0m", TestTitleResult(), AddBorder(result, false))
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
 func PrintANSITestResults(input string, expected, result [][]convert.ANSILineToken, t *testing.T) {
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
-	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
+	t.Logf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	t.Logf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
+	t.Logf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
 
 	if Debug() {
 		for i, line := range expected {
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), line)
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), result[i])
+			t.Logf("%s %+v\x1b[0m\n", TestTitleExpected(), line)
+			t.Logf("%s %+v\x1b[0m\n", TestTitleResult(), result[i])
 
 			eb, err := json.MarshalIndent(line, "", "  ")
 			if err != nil {
-				fmt.Println("error:", err)
+				t.Logf("error: %v", err)
 			}
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), string(eb))
+			t.Logf("%s %+v\x1b[0m\n", TestTitleExpected(), string(eb))
 			rb, err := json.MarshalIndent(result[i], "", "  ")
 			if err != nil {
-				fmt.Println("error:", err)
+				t.Logf("error: %v", err)
 			}
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
+			t.Logf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
 			for j, token := range result[i] {
 				Assert(line[j], token, t)
 				if (j + 1) < len(line) {
@@ -151,14 +151,14 @@ func PrintSAUCETestResults(input string, expected, result *convert.SAUCE, t *tes
 	if Debug() {
 		eb, err := json.MarshalIndent(expected, "", "  ")
 		if err != nil {
-			fmt.Println("error:", err)
+			t.Logf("error: %v", err)
 		}
-		fmt.Printf("%s\n%+v\x1b[0m\n", TestTitleExpected(), string(eb))
+		t.Logf("%s\n%+v\x1b[0m\n", TestTitleExpected(), string(eb))
 		rb, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
-			fmt.Println("error:", err)
+			t.Logf("error: %v", err)
 		}
-		fmt.Printf("%s\n%+v\x1b[0m\n", TestTitleResult(), string(rb))
+		t.Logf("%s\n%+v\x1b[0m\n", TestTitleResult(), string(rb))
 		Assert(expected, result, t)
 	}
 }

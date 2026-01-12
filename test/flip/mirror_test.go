@@ -145,6 +145,7 @@ func TestMapCompleteness(t *testing.T) {
 				strings.Join(completeSetStrings, ", "),
 				"",
 				strings.Join(completeMissingStrings, ", "),
+				t,
 			)
 			test.Assert(missing, make([]test.UnicodeChar, 0), t)
 		})

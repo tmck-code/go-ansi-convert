@@ -64,6 +64,7 @@ func TestConvertAnsStrings(t *testing.T) {
 				fmt.Sprintf("%+v\x1b[0m", tc.inputString),
 				fmt.Sprintf("%+v\x1b[0m", tc.expectedString),
 				fmt.Sprintf("%+v\x1b[0m", result),
+				t,
 			)
 			test.Assert(tc.expectedString, result, t)
 		})

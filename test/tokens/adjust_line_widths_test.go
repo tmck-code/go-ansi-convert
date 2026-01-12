@@ -109,8 +109,8 @@ func TestAdjustANSILineWidths(t *testing.T) {
 				fmt.Sprintf("targetWidth: %+v, targetLines: %+v\n%+v\x1b[0m", tc.input.targetWidth, tc.input.targetLines, tc.input.lines),
 				fmt.Sprintf("%+v\x1b[0m", tc.expected),
 				fmt.Sprintf("%+v\x1b[0m", result),
+				t,
 			)
-
 			test.Assert(tc.expected, result, t)
 		})
 	}

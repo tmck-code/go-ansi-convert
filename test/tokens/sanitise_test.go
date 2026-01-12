@@ -92,7 +92,7 @@ func TestSanitiseUnicodeString(t *testing.T) {
 
 			result := convert.SanitiseUnicodeString(inputStr, false)
 
-			test.PrintSimpleTestResults(inputStr, expectedStr, result)
+			test.PrintSimpleTestResults(inputStr, expectedStr, result, t)
 			test.Assert(expectedStr, result, t)
 		})
 	}
@@ -266,7 +266,7 @@ func TestSanitiseUnicodeStringWithJustify(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.SanitiseUnicodeString(tc.input, true)
-			test.PrintSimpleTestResults(tc.input, tc.expected, result)
+			test.PrintSimpleTestResults(tc.input, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
 		})
 	}

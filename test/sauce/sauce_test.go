@@ -223,7 +223,7 @@ func TestParseInvalidSAUCE(t *testing.T) {
 				result = err.Error()
 			}
 
-			test.PrintSimpleTestResults(string(tc.input), tc.expected, result)
+			test.PrintSimpleTestResults(string(tc.input), tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
 		})
 	}
