@@ -196,6 +196,8 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 	isReset := false
 	fg := ""
 	bg := ""
+	styleModifier := "" // Track style modifiers like \x1b[1m (bold)
+	hadStyleBeforeReset := false // Track if there was a style modifier before the last reset
 	lines := make([][]ANSILineToken, 0)
 	lineSlice := strings.Split(msg, "\n")
 
@@ -207,7 +209,8 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 		tokens := make([]ANSILineToken, 0)
 		text := ""
 		colour := ""
-		isReset = false // Clear reset state at start of each line
+		isReset = false    // Clear reset state at start of each line
+		styleModifier = "" // Clear style modifier at start of each line
 
 		for _, ch := range line {
 			// start of colour sequence detected!
@@ -221,6 +224,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 				switch ch {
 				case 'm':
 					isColour = false
+
 					// if there is text in the current token buffer, we need to finish it
 					if text != "" {
 						// if we are setting a bg colour, but the last token didn't have one
@@ -237,17 +241,20 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						}
 						text = ""
 					}
+					
 					// Check for 256-color or true color codes first (contains ;5; or ;2;)
 					if strings.Contains(colour, ";5;") || strings.Contains(colour, ";2;") {
+						// Clear the reset flag - we're setting a new color
+						isReset = false
 						// 256-color or true color format
 						if strings.Contains(colour, "[38") || strings.Contains(colour, "[39") {
 							fg = colour
-							isReset = false
 						} else if strings.Contains(colour, "[48") || strings.Contains(colour, "[49") {
 							bg = colour
-							isReset = false
 						}
 					} else if strings.Contains(colour, ";") {
+						// Clear the reset flag - we're setting a new color
+						isReset = false
 						// Check if this is a combined code with both FG and BG (e.g., \x1b[0;31;40m)
 						parts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(colour, "m"), "\x1b["), ";")
 						hasFG := false
@@ -279,13 +286,10 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						if hasFG && hasBG {
 							fg = "\x1b[" + fgCode + "m"
 							bg = "\x1b[" + bgCode + "m"
-							isReset = false
 						} else if hasFG {
 							fg = colour
-							isReset = false
 						} else if hasBG {
 							bg = colour
-							isReset = false
 						} else if hasReset {
 							isReset = true
 							fg = ""
@@ -294,15 +298,33 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						}
 					} else if strings.Contains(colour, "[3") || strings.Contains(colour, "[9") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
 						// 30m > 37m
-						fg = colour
+						// Clear the reset flag - we're setting a new color
 						isReset = false
+						fg = colour
 					} else if strings.Contains(colour, "[4") || strings.Contains(colour, "[10") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
 						// 40m > 47m
-						bg = colour
+						// Clear the reset flag - we're setting a new color
 						isReset = false
+						bg = colour
 					} else if strings.Contains(colour, "[0m") {
+						// When we see a reset, check if there's pending text first
+						if text != "" {
+							// Flush text with current color before reset
+							tokens = append(tokens, ANSILineToken{fg, bg, text})
+							text = ""
+						}
+						// Track if we had a style modifier before this reset
+						hadStyleBeforeReset = (styleModifier != "")
+						// Mark that we have a pending reset
+						// It will be output with the NEXT text, not as an empty token
+						// (unless another color code appears first, in which case we output it)
 						isReset = true
 						fg, bg, colour = "", "", ""
+						styleModifier = "" // Clear style modifier on reset
+					} else if colour == "\x1b[1m" {
+						// Bold/bright text style modifier - keep as separate modifier
+						styleModifier = colour
+						isReset = false
 					} else {
 					}
 				case 'C':
@@ -312,8 +334,31 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					fmt.Sscanf(colour, "\x1b[%dC", &numSpaces)
 					text += strings.Repeat(" ", numSpaces)
 				case 't':
-					// this indicates a "true color" ANSI code!
+					// this indicates a "true color" ANSI code in custom format!
+					// Convert from "\x1b[1;R;G;Bt" to "\x1b[38;2;R;G;Bm" (foreground)
+					// Extract RGB values from the format: \x1b[1;R;G;Bt
 					isColour = false
+
+					// If we had a pending reset AND there was a style modifier before it,
+					// we need to output an empty reset token first
+					if isReset && hadStyleBeforeReset {
+						tokens = append(tokens, ANSILineToken{"\x1b[0m", "", ""})
+						hadStyleBeforeReset = false
+					}
+					isReset = false
+
+					// Parse the custom truecolor format
+					parts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(colour, "t"), "\x1b["), ";")
+					if len(parts) == 4 && parts[0] == "1" {
+						// Format is: [1;R;G;Bt - convert to standard truecolor
+						r, g, b := parts[1], parts[2], parts[3]
+						// Prepend style modifier if present (e.g., \x1b[1m for bold)
+						if styleModifier != "" {
+							fg = styleModifier + fmt.Sprintf("\x1b[38;2;%s;%s;%sm", r, g, b)
+						} else {
+							fg = fmt.Sprintf("\x1b[38;2;%s;%s;%sm", r, g, b)
+						}
+					}
 				default:
 					// still in colour code
 				}
@@ -325,11 +370,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 			if isReset {
 				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
 				isReset = false
-			} else if colour != "\x1b[0m" && len(tokens) > 0 && tokens[len(tokens)-1].FG == "\x1b[0m" && tokens[len(tokens)-1].T == "" {
-				// if the previous token was a reset, but didn't have any text, and this token sets a new colour,
-				// then replace the previous reset token with the new token
-				tokens[len(tokens)-1] = ANSILineToken{fg, bg, text}
 			} else {
+				// Don't replace empty reset tokens - preserve them
+				// Just append the new token
 				// If we are setting a bg colour, but the last token didn't have one
 				// then add a background clear to the previous bg.
 				// This makes it less of a nightmare to flip horizontally if required.
@@ -627,7 +670,7 @@ func ConvertAns(s string, info SAUCE) string {
 	var builder strings.Builder
 	builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
 
-	for _, line := range lines {
+	for lineIdx, line := range lines {
 		// Write the tokens for this line
 		for i, token := range line {
 			fg, bg := token.FG, token.BG
@@ -653,8 +696,12 @@ func ConvertAns(s string, info SAUCE) string {
 			builder.WriteString(token.T)
 		}
 
-		// End each line with reset
-		builder.WriteString("\x1b[0m\n")
+		// End each line with reset, and newline for all but the last line
+		if lineIdx < len(lines)-1 {
+			builder.WriteString("\x1b[0m\n")
+		} else {
+			builder.WriteString("\x1b[0m")
+		}
 	}
 
 	return builder.String()
