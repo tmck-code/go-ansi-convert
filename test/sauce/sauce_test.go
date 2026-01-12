@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/convert"
@@ -285,6 +286,61 @@ func TestParseSAUCEFiles(t *testing.T) {
 
 			test.PrintSAUCETestResults(tc.path, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
+		})
+	}
+}
+
+func TestParseFileDataWithEncoding(t *testing.T) {
+	testCases := []struct {
+		path             string
+		expectedEncoding string
+		expectedData     string
+	}{
+		{
+			"../data/h7-matt.ans",
+			"iso-8859-1",
+			strings.Join(
+				[]string{
+					"\x1b[0;40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t\r",
+					"\r",
+					"\r",
+					"\r",
+					"\x1b[34C\x1b[1;30m\x1b[1;87;87;87t ___________\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t ___| \x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[9C\x1b[1;30m\x1b[1;87;87;87t/.___\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t(\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[1;30m\x1b[1;87;87;87t!\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[11C\x1b[1;30m\x1b[1;87;87;87t!\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[1;30m\x1b[1;87;87;87t)\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t(\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[1;30m\x1b[1;87;87;87t:\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[35m\x1b[1;171;0;171t______ \x1b[37m\x1b[1;171;171;171t \x1b[1;30m\x1b[1;87;87;87t:\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t  \x1b[1;30m\x1b[1;87;87;87t )\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t(\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[1;30m\x1b[1;87;87;87t.\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t  \x1b[35m\x1b[1;171;0;171t/\x1b[34m\x1b[1;0;0;171t¯¯¯¯¯¯\x1b[35m\x1b[1;171;0;171t\\ \x1b[1;30m\x1b[1;87;87;87t.\x1b[32m\x1b[1;87;255;87t  \x1b[30m\x1b[1;87;87;87t )\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[25C\x1b[35m\x1b[1;171;0;171t   _______ /\x1b[34m\x1b[1;0;0;171t·\x1b[35m\x1b[1;171;0;171t   \x1b[36m\x1b[1;0;171;171t \x1b[35m\x1b[1;171;0;171t   \\   \x1b[1;32m\x1b[1;87;255;87t \x1b[30m\x1b[1;87;87;87t·\x1b[0;35m\x1b[0;0;0;0t\x1b[1;171;0;171t___    ___\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[19C\x1b[35m\x1b[1;171;0;171t  ____  /\x1b[34m\x1b[1;0;0;171t¯¯¯¯¯¯\x1b[35m\x1b[1;171;0;171t//\x1b[34m\x1b[1;0;0;171t/\x1b[35m\x1b[1;171;0;171t\x1b[6C\x1b[36m\x1b[1;0;171;171t  \x1b[35m\x1b[1;171;0;171t \\  _/\x1b[34m\x1b[1;0;0;171t¯¯¯\x1b[35m\x1b[1;171;0;171t\\__/\x1b[34m\x1b[1;0;0;171t¯¯¯\x1b[35m\x1b[1;171;0;171t\\__\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[16C\x1b[1;32m\x1b[1;87;255;87t \x1b[0;34m\x1b[0;0;0;0t\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t \x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t/\x1b[34m\x1b[1;0;0;171t·¯¯¯\x1b[36m\x1b[1;0;171;171t\\/  _   //\x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t    \x1b[1;34m\x1b[1;87;87;255t/\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t\\\x1b[5C\\/\x1b[34m\x1b[1;0;0;171t \x1b[36m\x1b[1;0;171;171t\x1b[5C_/\x1b[34m\x1b[1;0;0;171t·\x1b[36m\x1b[1;0;171;171t    _/\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[17C\x1b[1;32m\x1b[1;87;255;87t \x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t_/\x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t  _   \x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t/\x1b[34m\x1b[1;0;0;171t¯ \x1b[36m\x1b[1;0;171;171t  \\\x1b[5C¯¯¯¯ \x1b[34m\x1b[1;0;0;171t_\x1b[36m\x1b[1;0;171;171t   \\\x1b[34m\x1b[1;0;0;171t \x1b[36m\x1b[1;0;171;171t   \x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t//\x1b[34m\x1b[1;0;0;171t/\x1b[36m\x1b[1;0;171;171t    /\x1b[34m\x1b[1;0;0;171t¯\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[15C\x1b[1;30m\x1b[1;87;87;87t   \x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t\\\x1b[1;32m\x1b[1;87;255;87t_____\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t\\\x1b[1;32m\x1b[1;87;255;87t__\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t/\x1b[1;32m\x1b[1;87;255;87t_____/____\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t/¯¯¯¯\\\x1b[34m\x1b[1;0;0;171t\\\x1b[36m\x1b[1;0;171;171t    \\\x1b[1;32m\x1b[1;87;255;87t___\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t/\\\x1b[1;32m\x1b[1;87;255;87t_____\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t/\x1b[34m\x1b[1;0;0;171t/\x1b[1;32m\x1b[1;87;255;87t \x1b[0;34m\x1b[0;0;0;0t\x1b[1;0;0;171t/\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[19C\x1b[34m\x1b[1;0;0;171t¯¯¯¯¯¯¯¯¯¯¯\x1b[1;30m\x1b[1;87;87;87t_\x1b[0;34m\x1b[0;0;0;0t\x1b[1;0;0;171t¯¯¯¯¯¯¯\x1b[37m\x1b[1;171;171;171t\x1b[6C\x1b[36m\x1b[1;0;171;171t\\\x1b[1;32m\x1b[1;87;255;87t_____\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t\\\x1b[1;30m\x1b[1;87;87;87tH7/dS!\x1b[0;34m\x1b[0;0;0;0t\x1b[1;0;0;171t¯¯¯\r",
+					"\x1b[37m\x1b[1;171;171;171t\x1b[17C\x1b[41;30m\x1b[0;171;0;0t\x1b[1;0;0;0t \x1b[40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t \x1b[41;30m\x1b[0;171;0;0t\x1b[1;0;0;0t happy birthday mAtt! \x1b[40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t \x1b[41;30m\x1b[0;171;0;0t\x1b[1;0;0;0t \x1b[40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t  \x1b[34m\x1b[1;0;0;171t¯\x1b[1;30m\x1b[1;87;87;87t.\x1b[0;34m\x1b[0;0;0;0t\x1b[1;0;0;171t¯¯¯\x1b[1;30m\x1b[1;87;87;87t_\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t( \x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t  \x1b[1;30m\x1b[1;87;87;87t:\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[11C\x1b[1;30m\x1b[1;87;87;87t:\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t   \x1b[1;30m\x1b[1;87;87;87t)\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[30C\x1b[1;30m\x1b[1;87;87;87t(___|_\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[9C\x1b[1;30m\x1b[1;87;87;87t |___)\r",
+					"\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[33C\x1b[1;30m\x1b[1;87;87;87t '/__________|\r",
+					"",
+				}, "\n"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.path, func(t *testing.T) {
+			data, err := os.ReadFile(tc.path)
+			if err != nil {
+				t.Fatalf("Error reading file %s: %v\n", tc.path, err)
+			}
+			result := convert.DetectEncoding(data)
+			test.PrintSimpleTestResults(tc.path, tc.expectedEncoding, result, t)
+			test.Assert(tc.expectedEncoding, result, t)
+
+			_, result, err = convert.ParseSAUCEFromFile(tc.path)
+			if err != nil {
+				t.Fatalf("Error parsing file data from %s: %v\n", tc.path, err)
+			}
+			test.PrintSimpleTestResults(tc.path, tc.expectedData, result, t)
+			test.Assert(tc.expectedData, result, t)
 		})
 	}
 }

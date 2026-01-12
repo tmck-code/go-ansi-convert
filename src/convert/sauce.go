@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/saintfish/chardet"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -226,6 +227,55 @@ type SAUCE struct {
 	TInfoS   string     // 22 bytes: Type dependent string (null-terminated)
 }
 
+// DetectEncoding attempts to determine if file data is CP437 or ISO-8859-1
+// Uses chardet library for detection, with fallback heuristics for ANSI art
+func DetectEncoding(data []byte) string {
+	detector := chardet.NewTextDetector()
+	result, err := detector.DetectBest(data)
+
+	if err == nil && result != nil {
+		// chardet returns normalized encoding names
+		switch result.Charset {
+		case "ISO-8859-1", "windows-1252":
+			return "iso-8859-1"
+		case "ISO-8859-15":
+			return "iso-8859-15"
+		case "IBM437", "CP437":
+			return "cp437"
+		}
+	}
+
+	// Fallback: Count CP437-specific characters (box-drawing and block graphics)
+	// These are in the 0xB0-0xDF range and are common in ANSI art
+	cp437CharCount := 0
+	totalHighBytes := 0
+
+	for _, b := range data {
+		if b >= 0x80 { // High-bit characters
+			totalHighBytes++
+			// Common CP437 box-drawing and block characters
+			if (b >= 0xB0 && b <= 0xDF) || // Box drawing, blocks
+				b == 0xDB || b == 0xDC || b == 0xDD || b == 0xDE || // Full/half blocks
+				(b >= 0xC0 && b <= 0xC5) || // Box corners/intersections
+				(b >= 0xB3 && b <= 0xBA) { // Vertical/horizontal lines
+				cp437CharCount++
+			}
+		}
+	}
+
+	// If we have high-bit characters and more than 10% are CP437-specific, use CP437
+	if totalHighBytes > 0 {
+		ratio := float64(cp437CharCount) / float64(totalHighBytes)
+		if ratio > 0.10 {
+			return "cp437"
+		}
+		return "iso-8859-1"
+	}
+
+	// Default to CP437 for ANSI art files (this tool's primary use case)
+	return "cp437"
+}
+
 func ParseSAUCEFromFile(path string) (*SAUCE, string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -245,13 +295,25 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 	// Read the last 128 bytes
 	sauceData := data[len(data)-128:]
 
-	// read the rest of the file data, converting from cp437 to utf8
-	// fileData := data[:len(data)-128]
-	decoder := charmap.CodePage437.NewDecoder()
-	decodedFileData, err := decoder.Bytes(data[:len(data)-128])
+	// Detect encoding and decode file data to UTF-8
+	fileDataRaw := data[:len(data)-128]
+	encoding := DetectEncoding(fileDataRaw)
+
+	var decoder *charmap.Charmap
+	if encoding == "cp437" {
+		decoder = charmap.CodePage437
+	} else if encoding == "iso-8859-1" {
+		decoder = charmap.ISO8859_1
+	} else if encoding == "iso-8859-15" {
+		decoder = charmap.ISO8859_15
+	} else {
+		decoder = charmap.CodePage437 // Default to CP437
+	}
+
+	decodedFileData, err := decoder.NewDecoder().Bytes(fileDataRaw)
 	var fileData []byte
 	if err != nil {
-		fileData = data[:len(data)-128]
+		fileData = fileDataRaw
 	} else {
 		fileData = decodedFileData
 	}
