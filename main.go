@@ -31,6 +31,7 @@ type Args struct {
 	ConvertAns            bool
 	DisplaySAUCEInfo      bool
 	DisplaySAUCEInfoJSON  bool
+	DetectEncoding        bool
 }
 
 func main() {
@@ -50,6 +51,7 @@ func main() {
 	convertAns := getopt.BoolLong("convert-ans", 'c', "Convert an ANSI .ans file (CP437 encoded) to UTF-8 ANSI")
 	displaySAUCE := getopt.BoolLong("display-sauce", 'S', "Display SAUCE metadata from input file (if present)")
 	displaySAUCEInfoJSON := getopt.BoolLong("display-sauce-json", 0, "Display SAUCE metadata from input file in JSON format (if present)")
+	detectEncoding := getopt.BoolLong("detect-encoding", 'e', "Detect if input file is CP437 or ISO-8859-1 encoded")
 
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
@@ -61,6 +63,7 @@ func main() {
 	getopt.Lookup("help").SetGroup("operation")
 	getopt.Lookup("optimise").SetGroup("operation")
 	getopt.Lookup("display-sauce").SetGroup("operation")
+	getopt.Lookup("detect-encoding").SetGroup("operation")
 	getopt.RequiredGroup("operation")
 
 	getopt.Parse()
@@ -83,10 +86,21 @@ func main() {
 		ConvertAns:            *convertAns,
 		DisplaySAUCEInfo:      *displaySAUCE,
 		DisplaySAUCEInfoJSON:  *displaySAUCEInfoJSON,
+		DetectEncoding:        *detectEncoding,
 	}
 
 	if args.Help {
 		getopt.Usage()
+		return
+	}
+
+	if args.DetectEncoding {
+		data, err := os.ReadFile(args.InputFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", args.InputFile, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", convert.DetectEncoding(data))
 		return
 	}
 

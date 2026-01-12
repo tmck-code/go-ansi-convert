@@ -702,8 +702,8 @@ func ConvertAns(s string, info SAUCE) string {
 		if lineIdx < len(lines)-1 {
 			builder.WriteString("\x1b[0m\n")
 		} else {
-			fmt.Println("Has trailing newline:", hasTrailingNewline)
-			if hasTrailingNewline {
+			fmt.Fprintf(os.Stderr, "Has trailing newline: %v\n", hasTrailingNewline)
+			if hasTrailingNewline || lineIdx <= fileLines-1 {
 				builder.WriteString("\x1b[0m\n")
 			} else {
 				builder.WriteString("\x1b[0m")

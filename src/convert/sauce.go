@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
-	"github.com/wlynxg/chardet"
 	"golang.org/x/text/encoding/charmap"
 )
 
@@ -230,25 +230,81 @@ type SAUCE struct {
 // DetectEncoding attempts to determine if file data is CP437 or ISO-8859-1
 // Uses chardet library for detection, with fallback heuristics for ANSI art
 func DetectEncoding(data []byte) string {
-	result := chardet.Detect(data)
+	pointsForCP437, pointsForISO := 0, 0
 
-	fmt.Printf("Chardet detection result: %+v\n", result)
-
-	// chardet returns normalized encoding names
-	switch result.Encoding {
-	case "ISO-8859-1", "windows-1252":
-		return "iso-8859-1"
-	case "ISO-8859-15":
-		return "iso-8859-15"
-	case "IBM437", "CP437":
-		return "cp437"
-	case "MacRoman":
-		fmt.Println("Detected MacRoman encoding, falling back to iso-8859-1")
-		return "iso-8859-1"
-	default:
-		fmt.Println("Unknown encoding detected by chardet, falling back to iso-8859-1")
-		return "cp437"
+	// first, try CP437
+	decoder := charmap.CodePage437.NewDecoder()
+	CP437Translated, err := decoder.Bytes(data)
+	if err != nil {
+		pointsForISO += 1
+	} else {
+		// now try encoding the cp437 data as ISO-8859-1
+		encoder := charmap.ISO8859_1.NewEncoder()
+		_, err = encoder.Bytes(CP437Translated)
+		// if that failed, then it's definitely cp437
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "  - translation from CP437 to ISO-8859-1 failed!!")
+			pointsForCP437 += 1
+		}
 	}
+
+	// second, try ISO-8859-1, then re-encode as CP437
+	decoder = charmap.ISO8859_1.NewDecoder()
+	ISOTranslated, err := decoder.Bytes(data)
+	if err != nil {
+		pointsForCP437 += 1
+	} else {
+		encoder := charmap.CodePage437.NewEncoder()
+		_, err = encoder.Bytes(ISOTranslated)
+		// if that failed, then it's definitely iso-8859-1
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "  - translation from ISO-8859-1 to CP437 failed!!")
+			pointsForISO += 1
+		}
+	}
+
+	// having more of these chars is usually bad
+	for _, ch := range [][]byte{[]byte("»"), []byte("Ü"), []byte("╖")} {
+		origCount := bytes.Count(data, ch)
+		cp437Count := bytes.Count(CP437Translated, ch)
+		isoCount := bytes.Count(ISOTranslated, ch)
+
+		if cp437Count > isoCount {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, \x1b[91mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			pointsForISO += 1
+		} else if isoCount > cp437Count {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, cp437=%d, \x1b[91miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
+			pointsForCP437 += 1
+		} else {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
+		}
+	}
+	// having more of these chars is usually good
+	// other candidates: []byte("²")
+	for _, ch := range [][]byte{[]byte("█"), []byte("¯"), []byte("░"), []byte("┌")} {
+		origCount := bytes.Count(data, ch)
+		cp437Count := bytes.Count(CP437Translated, ch)
+		isoCount := bytes.Count(ISOTranslated, ch)
+
+		if cp437Count > isoCount {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, \x1b[92mcp437=%d\x1b[0m, iso=%d\n", ch, origCount, cp437Count, isoCount)
+			pointsForCP437 += 1
+		} else if isoCount > cp437Count {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, cp437=%d, \x1b[92miso=%d\x1b[0m\n", ch, origCount, cp437Count, isoCount)
+			pointsForISO += 1
+		} else {
+			fmt.Fprintf(os.Stderr, "  - char %q: orig=%d, cp437=%d, iso=%d\n", ch, origCount, cp437Count, isoCount)
+		}
+	}
+	fmt.Fprintf(os.Stderr, "Points:\n- CP437:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+
+	if pointsForCP437 > pointsForISO {
+		return "cp437"
+	} else if pointsForISO > pointsForCP437 {
+		return "iso-8859-1"
+	}
+	fmt.Fprintln(os.Stderr, "Unable to detect encoding, assuming ASCII")
+	return "ascii"
 }
 
 func ParseSAUCEFromFile(path string) (*SAUCE, string, error) {
@@ -267,8 +323,10 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 		return nil, "", fmt.Errorf("data too short to contain SAUCE record")
 	}
 
-	// Read the last 128 bytes
-	sauceData := data[len(data)-128:]
+	// Find the "\x1a" character that indicates the start of the SAUCE record
+	sauceIdx := bytes.Index(data, []byte{0x1a})
+	sauceData := data[sauceIdx+1:]
+	// sauceData := data[len(data)-128:]
 
 	// Detect encoding and decode file data to UTF-8
 	fileDataRaw := data[:len(data)-128]
@@ -277,31 +335,33 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 	var decoder *charmap.Charmap
 	decoder = charmap.ISO8859_1
 
+	isASCII := false
 	switch encoding {
 	case "cp437":
-		fmt.Println("Detected encoding: CP437")
+		fmt.Fprintf(os.Stderr, "Detected encoding: CP437\n")
 		decoder = charmap.CodePage437
 	case "iso-8859-1":
-		fmt.Println("Detected encoding: ISO-8859-1")
+		fmt.Fprintf(os.Stderr, "Detected encoding: ISO-8859-1\n")
 		decoder = charmap.ISO8859_1
-	case "iso-8859-15":
-		fmt.Println("Detected encoding: ISO-8859-15")
-		decoder = charmap.ISO8859_15
-	case "macroman":
-		fmt.Println("Detected encoding: MacRoman")
-		decoder = charmap.Macintosh
+	case "ascii":
+		fmt.Fprintf(os.Stderr, "Detected encoding: ASCII\n")
+		isASCII = true
 	default:
-		fmt.Println("Unknown encoding detected, defaulting to ISO-8859-1")
-		decoder = charmap.ISO8859_1
+		fmt.Fprintf(os.Stderr, "Unknown encoding detected, defaulting to cp437\n")
+		decoder = charmap.CodePage437
 	}
 
-	decodedFileData, err := decoder.NewDecoder().Bytes(fileDataRaw)
 	var fileData []byte
-	if err != nil {
+	if isASCII {
 		fileData = fileDataRaw
 	} else {
+		decodedFileData, err := decoder.NewDecoder().Bytes(fileDataRaw)
+		if err != nil {
+			log.Fatalf("Error decoding file data: %v", err)
+		}
 		fileData = decodedFileData
 	}
+
 	// strip the \x1a EOF character if present
 	fileData = bytes.TrimRight(fileData, "\x1a")
 

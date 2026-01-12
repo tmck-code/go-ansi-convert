@@ -51,6 +51,7 @@ func TestConvertAnsStrings(t *testing.T) {
 				[]string{
 					"\x1b[31m\x1b[40m123\x1b[0m",
 					"\x1b[36m\x1b[43mabc\x1b[0m",
+					"",
 				},
 				"\n",
 			),
@@ -65,7 +66,7 @@ func TestConvertAnsStrings(t *testing.T) {
 				TInfo1:   convert.TInfoField{Name: "Character Width", Value: 170},
 				TInfo2:   convert.TInfoField{Name: "Number of lines", Value: 1},
 			},
-			expectedString: "                                                                     \x1b[1m\x1b[38;2;224;224;224m_\x1b[0m\x1b[38;2;168;168;168m.\x1b[1m\x1b[38;2;224;224;224mxxXXx...\x1b[0m\x1b[38;2;168;168;168m \x1b[1m\x1b[38;2;224;224;224mxXXX/\x1b[0m\x1b[38;2;168;168;168mXXXxxxXXxxx.                                                                         \x1b[0m",
+			expectedString: "                                                                     \x1b[1m\x1b[38;2;224;224;224m_\x1b[0m\x1b[38;2;168;168;168m.\x1b[1m\x1b[38;2;224;224;224mxxXXx...\x1b[0m\x1b[38;2;168;168;168m \x1b[1m\x1b[38;2;224;224;224mxXXX/\x1b[0m\x1b[38;2;168;168;168mXXXxxxXXxxx.                                                                         \x1b[0m\n",
 		},
 	}
 	for _, tc := range testCases {
