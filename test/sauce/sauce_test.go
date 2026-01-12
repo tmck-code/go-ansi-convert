@@ -292,14 +292,16 @@ func TestParseSAUCEFiles(t *testing.T) {
 
 func TestParseFileDataWithEncoding(t *testing.T) {
 	testCases := []struct {
+		name             string
 		path             string
 		expectedEncoding string
 		expectedData     string
 	}{
 		{
-			"../data/h7-matt.ans",
-			"iso-8859-1",
-			strings.Join(
+			name:             "ISO-8859-1 encoded file",
+			path:             "../data/h7-matt.ans",
+			expectedEncoding: "iso-8859-1",
+			expectedData: strings.Join(
 				[]string{
 					"\x1b[0;40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t\r",
 					"\r",
@@ -323,6 +325,18 @@ func TestParseFileDataWithEncoding(t *testing.T) {
 					"",
 				}, "\n"),
 		},
+		// {
+		// 	name:             "ISO-8859-1 encoded file with cursor and truecolor codes",
+		// 	path:             "../data/xz-gibson.ans",
+		// 	expectedEncoding: "iso-8859-1",
+		// 	expectedData: strings.Join(
+		// 		[]string{
+		// 			"\x1b[0;40;37m\x1b[0;0;0;0t\x1b[1;171;171;171t\r",
+		// 			"\r",
+		// 		},
+		// 		"\n",
+		// 	),
+		// },
 	}
 
 	for _, tc := range testCases {
