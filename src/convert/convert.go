@@ -318,7 +318,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					// still in colour code
 				}
 			} else {
-				text += string(ch)
+				if ch != '\r' {
+					text += string(ch)
+				}
 			}
 		}
 		if colour != "" || text != "" {
@@ -498,11 +500,11 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 				if currTokenIdx >= len(lines[currTokenLineIdx]) {
 					currTokenLineIdx++
 					currTokenIdx = 0
-					// Skip empty lines
-					for currTokenLineIdx < len(lines) && len(lines[currTokenLineIdx]) == 0 {
-						currTokenLineIdx++
-					}
 					if currTokenLineIdx >= len(lines) {
+						break
+					}
+					// If the new line is empty, break to pad current line
+					if len(lines[currTokenLineIdx]) == 0 {
 						break
 					}
 				}
@@ -620,21 +622,20 @@ func ConvertAns(s string, info SAUCE) string {
 		for i, token := range line {
 			fg, bg := token.FG, token.BG
 
+			// Don't write double reset at end of line (from padding)
+			// Check this BEFORE modifying fg/bg
+			if i == len(line)-1 && token.FG == "\x1b[0m" && token.BG == "\x1b[0m" {
+				// This is padding token, just write text
+				builder.WriteString(token.T)
+				continue
+			}
+
 			// At line start, convert reset codes to explicit default colors
 			if i == 0 {
 				if fg == "\x1b[0m" {
 					fg = "\x1b[37m" // White foreground
 				}
-				if bg == "\x1b[0m" || bg == "\x1b[49m" || bg == "" {
-					bg = "\x1b[40m" // Black background
-				}
-			}
-
-			// Don't write double reset at end of line (from padding)
-			if i == len(line)-1 && fg == "\x1b[0m" && bg == "\x1b[0m" {
-				// This is padding token, just write text
-				builder.WriteString(token.T)
-				continue
+				// Don't force black background - let it be omitted if not needed
 			}
 
 			builder.WriteString(fg)

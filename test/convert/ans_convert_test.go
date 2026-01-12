@@ -93,6 +93,12 @@ func TestConvertAnsFiles(t *testing.T) {
 			"../data/xz-gibson.ans",
 			"../data/xz-gibson.converted.ansi",
 		},
+		{
+			// https://16colo.rs/pack/impure91/bhe-peaceofmind.txt
+			"bhe-peaceofmind",
+			"../data/bhe-peaceofmind.txt",
+			"../data/bhe-peaceofmind.converted.ansi",
+		},
 	}
 
 	for _, tc := range testCases {
