@@ -166,17 +166,14 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 		styleModifier = "" // Clear style modifier at start of each line
 
 		for _, ch := range line {
-			// start of colour sequence detected!
 			switch ch {
 			case '\033':
+				// start of colour sequence detected!
 				isColour = true
 				colour = string(ch)
 				continue
 			case '\x1f', '\x06', '\x07':
-				// replace with a space:
-				// - 0x1F (unit separator)
-				// - 0x06 (acknowledge)
-				// - 0x07 (bell)
+				// replace with a space: 0x1F (unit separator), 0x06 (acknowledge), 0x07 (bell)
 				text += " "
 				continue
 			}
@@ -636,14 +633,27 @@ func ConvertAns(s string, info SAUCE) string {
 	builder.Grow(len(s) + len(lines)*charWidth) // Pre-allocate
 
 	for lineIdx, line := range lines {
+		prevBG := ""
 		// Write the tokens for this line
 		for i, token := range line {
 			fg, bg := token.FG, token.BG
 
+			// Handle empty reset tokens in the middle of lines
+			if token.FG == "\x1b[0m" && token.BG == "" && token.T == "" {
+				// This is an empty reset token - write it and continue
+				builder.WriteString("\x1b[0m")
+				prevBG = "" // Reset clears background
+				continue
+			}
+
 			// Don't write double reset at end of line (from padding)
 			// Check this BEFORE modifying fg/bg
 			if i == len(line)-1 && token.FG == "\x1b[0m" && token.BG == "\x1b[0m" {
-				// This is padding token, just write text
+				// This is padding token - write reset first if previous token had non-default BG
+				// Default BG is black (\x1b[40m) or explicitly cleared (\x1b[49m)
+				if prevBG != "" && prevBG != "\x1b[40m" && prevBG != "\x1b[49m" {
+					builder.WriteString("\x1b[0m")
+				}
 				builder.WriteString(token.T)
 				continue
 			}
@@ -656,9 +666,21 @@ func ConvertAns(s string, info SAUCE) string {
 				// Don't force black background - let it be omitted if not needed
 			}
 
+			// If previous token had a background but current doesn't, emit reset first
+			if prevBG != "" && bg == "" && fg != "\x1b[0m" {
+				builder.WriteString("\x1b[0m")
+			}
+
 			builder.WriteString(fg)
 			builder.WriteString(bg)
 			builder.WriteString(token.T)
+
+			// Update previous background state
+			if bg != "" {
+				prevBG = bg
+			} else if fg == "\x1b[0m" {
+				prevBG = "" // Reset clears background
+			}
 		}
 
 		// End each line with reset, and newline for all but the last line

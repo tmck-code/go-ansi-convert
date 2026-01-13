@@ -68,6 +68,18 @@ func TestConvertAnsStrings(t *testing.T) {
 			},
 			expectedString: "                                                                     \x1b[1m\x1b[38;2;224;224;224m_\x1b[0m\x1b[38;2;168;168;168m.\x1b[1m\x1b[38;2;224;224;224mxxXXx...\x1b[0m\x1b[38;2;168;168;168m \x1b[1m\x1b[38;2;224;224;224mxXXX/\x1b[0m\x1b[38;2;168;168;168mXXXxxxXXxxx.                                                                         \x1b[0m\n",
 		},
+		{
+			name:        "Line with truecolor codes 2",
+			inputString: "\x1b[37m\x1b[1;168;168;168t  \x1b[1m\x1b[1;224;224;224txxxx\x1b[0m\x1b[1;168;168;168t.²²'\x1b[34m\x1b[1;24;56;88t.xX²xx²²²x²XXXx. \x1b[37m\x1b[1;168;168;168t`XXXXXXl   \x1b[35m\x1b[1;144;16;64t    \x1b[45;30m\x1b[0;168;48;76tâ\x1b[40;35m\x1b[1;144;16;64tâ\"¯¯\"\x1b[45;30m\x1b[0;168;48;76tx\x1b[0m\r\n",
+			inputSAUCE: convert.SAUCE{
+				ID:       "SAUCE",
+				DataType: 1,
+				FileType: 1,
+				TInfo1:   convert.TInfoField{Name: "Character Width", Value: 60},
+				TInfo2:   convert.TInfoField{Name: "Number of lines", Value: 1},
+			},
+			expectedString: "\x1b[38;2;168;168;168m  \x1b[1m\x1b[38;2;224;224;224mxxxx\x1b[0m\x1b[38;2;168;168;168m.²²'\x1b[38;2;24;56;88m.xX²xx²²²x²XXXx. \x1b[38;2;168;168;168m`XXXXXXl   \x1b[38;2;144;16;64m\x1b[49m    \x1b[30m\x1b[45mâ\x1b[38;2;144;16;64m\x1b[40mâ\"¯¯\"\x1b[30m\x1b[45mx\x1b[0m           \x1b[0m\n",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
