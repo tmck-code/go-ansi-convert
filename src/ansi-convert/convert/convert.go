@@ -309,7 +309,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 
 					// Parse the custom truecolor format
 					parts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(colour, "t"), "\x1b["), ";")
-					if len(parts) == 4 && parts[0] == "1" {
+					if len(parts) == 4 && (parts[0] == "1") {
 						// Format is: [1;R;G;Bt - convert to standard truecolor
 						r, g, b := parts[1], parts[2], parts[3]
 						// Prepend style modifier if present (e.g., \x1b[1m for bold)
@@ -318,7 +318,22 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						} else {
 							fg = fmt.Sprintf("\x1b[38;2;%s;%s;%sm", r, g, b)
 						}
+					} else if len(parts) == 4 && (parts[0] == "0") {
+						// Format is: [1;R;G;Bt - convert to standard truecolor
+						r, g, b := parts[1], parts[2], parts[3]
+						if r == "0" && g == "0" && b == "0" {
+							// Special case for black background - use default black background code
+							bg = "\x1b[40m"
+							break
+						}
+						// Prepend style modifier if present (e.g., \x1b[1m for bold)
+						if styleModifier != "" {
+							bg = styleModifier + fmt.Sprintf("\x1b[48;2;%s;%s;%sm", r, g, b)
+						} else {
+							bg = fmt.Sprintf("\x1b[48;2;%s;%s;%sm", r, g, b)
+						}
 					}
+
 				default:
 					// still in colour code
 				}
