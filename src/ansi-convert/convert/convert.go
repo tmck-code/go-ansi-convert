@@ -167,10 +167,20 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 
 		for _, ch := range line {
 			// start of colour sequence detected!
-			if ch == '\033' {
+			switch ch {
+			case '\033':
 				isColour = true
 				colour = string(ch)
-			} else if isColour {
+				continue
+			case '\x1f', '\x06', '\x07':
+				// replace with a space:
+				// - 0x1F (unit separator)
+				// - 0x06 (acknowledge)
+				// - 0x07 (bell)
+				text += " "
+				continue
+			}
+			if isColour {
 				// keep building the current ANSI escape code if \033 was found earlier
 				// disable the isColour bool if the end of the ANSI escape code is found
 				colour += string(ch)
