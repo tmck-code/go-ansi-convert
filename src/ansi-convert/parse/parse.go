@@ -76,10 +76,10 @@ func DetectEncoding(data []byte) string {
 	}
 
 	if pointsForCP437 > pointsForISO {
-		log.DebugFprintf("Points:\n- \x1b[91mCP437\x1b[0m:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("Points:\n- \x1b[92mCP437\x1b[0m:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
 		return "cp437"
 	} else if pointsForISO > pointsForCP437 {
-		log.DebugFprintf("Points:\n- CP437:      %d\n- \x1b[91mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("Points:\n- CP437:      %d\n- \x1b[92mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
 		return "iso-8859-1"
 	}
 	log.DebugFprintln("Unable to detect encoding, assuming ASCII")
@@ -115,6 +115,7 @@ func DecodeFileContents(data []byte, encoding string) (string, error) {
 // Returns the total display width of the string.
 func UnicodeStringLength(s string) int {
 	nRunes, totalLen, ansiCode := len(s), 0, false
+	currCode := ""
 
 	for i, r := range s {
 		if i < nRunes-1 {
@@ -123,12 +124,18 @@ func UnicodeStringLength(s string) int {
 			//       ^^^ start    ^ end
 			if s[i:i+2] == "\x1b[" {
 				ansiCode = true
+				currCode = string(r)
+				continue
 			}
 		}
 		if ansiCode {
 			// detect the end of an ANSI escape code
 			if r == 'm' {
+				currCode += string(r)
+				currCode = ""
 				ansiCode = false
+			} else {
+				currCode += string(r)
 			}
 		} else {
 			if r < 128 {

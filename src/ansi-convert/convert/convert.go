@@ -627,8 +627,7 @@ func ConvertAns(s string, info SAUCE) string {
 		fileLines = int(info.TInfo2.Value) // Use number of lines from SAUCE if available
 	}
 
-	// Remove carriage returns (\r) from DOS line endings
-	s = strings.ReplaceAll(s, "\r\n", "\n")
+	// Remove carriage returns (\r) from DOS line ending
 	s = strings.ReplaceAll(s, "\r", "")
 
 	hasTrailingNewline := strings.HasSuffix(s, "\n")

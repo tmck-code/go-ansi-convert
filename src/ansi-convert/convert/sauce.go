@@ -237,6 +237,20 @@ func CreateSAUCERecord(path string) (*SAUCE, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("error decoding file data: %v", err)
 	}
+	var nLines int
+	var width int
+	log.DebugFprintf("Creating SAUCE record for file: %s. newlines count=%d\n", path, strings.Count(fileData, "\n"))
+	totalChars := parse.UnicodeStringLength(fileData)
+	log.DebugFprintf("Total characters in file: %d, total%%80: %d\n", totalChars, totalChars%80)
+
+	if strings.Count(fileData, "\n") == 0 || totalChars%80 == 0 {
+		width = 80
+		nLines = int(totalChars / width)
+	} else {
+		nLines = strings.Count(fileData, "\n")
+		width = parse.LongestUnicodeLineLength(strings.Split(fileData, "\n"))
+		log.DebugFprintf("Calculated width=%d from longest line length\n", width)
+	}
 
 	sauce := &SAUCE{
 		ID:       "SAUCE",
@@ -245,8 +259,8 @@ func CreateSAUCERecord(path string) (*SAUCE, string, error) {
 		FileType: FileTypeCharacterANSI,
 		DataType: DataTypeCharacter,
 		FileSize: uint32(len(data)),
-		TInfo1:   TInfoField{Name: TInfoNameCharacterWidth, Value: uint16(parse.LongestUnicodeLineLength(strings.Split(fileData, "\n")))},
-		TInfo2:   TInfoField{Name: TInfoNameNumberOfLines, Value: uint16(len(strings.Split(fileData, "\n")))},
+		TInfo1:   TInfoField{Name: TInfoNameCharacterWidth, Value: uint16(width)},
+		TInfo2:   TInfoField{Name: TInfoNameNumberOfLines, Value: uint16(nLines)},
 	}
 	return sauce, fileData, nil
 }

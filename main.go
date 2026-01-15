@@ -119,6 +119,7 @@ func main() {
 			log.DebugFprintf("Error creating SAUCE record: %v\n", err)
 			os.Exit(1)
 		}
+		log.DebugFprintf("Created new SAUCE record: %s\n", sauce.ToString())
 	}
 	if args.DisplaySAUCEInfo {
 		fmt.Println(sauce.ToString())
