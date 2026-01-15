@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
-	"golang.org/x/text/encoding/charmap"
-	"golang.org/x/text/transform"
 )
 
 type Args struct {
@@ -102,37 +99,33 @@ func main() {
 		return
 	}
 
+	// 1. always detect the encoding
+	// 2. always read & separate the SAUCE record (if present)
+
+	encoding, input := readInput(args)
 	if args.DetectEncoding {
-		data, err := os.ReadFile(args.InputFile)
-		if err != nil {
-			log.DebugFprintf("Error reading file %s: %v\n", args.InputFile, err)
-			os.Exit(1)
-		}
-		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", parse.DetectEncoding(data))
+		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", encoding)
 		return
 	}
 
+	var sauce *convert.SAUCE
+	var fileData string
+
+	sauce, fileData, err := convert.ParseSAUCE(input)
+	if err != nil {
+		log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
+		sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
+		if err != nil {
+			log.DebugFprintf("Error creating SAUCE record: %v\n", err)
+			os.Exit(1)
+		}
+	}
 	if args.DisplaySAUCEInfo {
-		sauceInfo, _, err := convert.ParseSAUCEFromFile(args.InputFile)
-		if err != nil {
-			log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
-			os.Exit(1)
-		}
-		if args.DisplaySAUCEInfoJSON {
-			jsonStr, err := sauceInfo.ToJSON()
-			if err != nil {
-				log.DebugFprintf("Error converting SAUCE info to JSON: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println(jsonStr)
-		} else {
-			fmt.Println(sauceInfo.ToString())
-		}
+		fmt.Println(sauce.ToString())
 		return
 	}
 
-	input := readInput(args)
-	result := process(args, input)
+	result := process(args, fileData, sauce)
 
 	if args.Display {
 		if args.FlipHorizontal {
@@ -190,59 +183,33 @@ func displayAboveBelow(original, flipped string, args Args) {
 	}
 }
 
-func readInput(args Args) string {
-	if args.Stdin {
-		return readStdin()
-	} else {
-		return readFile(args.InputFile, args.ConvertAns)
-	}
-}
+func readInput(args Args) (string, string) {
+	var raw []byte
+	var err error
 
-func readStdin() string {
-	data, err := io.ReadAll(os.Stdin)
+	if args.Stdin {
+		raw, err = io.ReadAll(os.Stdin)
+	} else {
+		raw, err = os.ReadFile(args.InputFile)
+	}
 	if err != nil {
 		log.DebugFprintf("Error reading stdin: %v\n", err)
 		os.Exit(1)
 	}
-	return string(data)
-}
 
-func readFile(path string, decodeCP437 bool) string {
-	data, err := os.ReadFile(path)
+	encoding := parse.DetectEncoding(raw)
+	data, err := parse.DecodeFileContents(raw, encoding)
 	if err != nil {
-		log.DebugFprintf("Error reading file %s: %v\n", path, err)
+		log.DebugFprintf("Error decoding file contents: %v\n", err)
 		os.Exit(1)
 	}
 
-	if decodeCP437 {
-		// Decode from CP437 to UTF-8
-		decoder := charmap.CodePage437.NewDecoder()
-		reader := transform.NewReader(bytes.NewReader(data), decoder)
-		decoded, err := io.ReadAll(reader)
-		if err != nil {
-			log.DebugFprintf("Error decoding CP437: %v\n", err)
-			os.Exit(1)
-		}
-		return string(decoded)
-	}
-
-	return string(data)
+	return encoding, data
 }
 
-func process(args Args, input string) string {
+func process(args Args, input string, sauce *convert.SAUCE) string {
 	if args.ConvertAns {
-		var sauce *convert.SAUCE
-		var fileData string
-		sauce, fileData, err := convert.ParseSAUCEFromFile(args.InputFile)
-		if err != nil {
-			log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
-			sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
-			if err != nil {
-				log.DebugFprintf("Error creating SAUCE record: %v\n", err)
-				os.Exit(1)
-			}
-		}
-		return convert.ConvertAns(fileData, *sauce)
+		return convert.ConvertAns(input, *sauce)
 	}
 	if args.Optimise {
 		tokenized := convert.TokeniseANSIString(input)

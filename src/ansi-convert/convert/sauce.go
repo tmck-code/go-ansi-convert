@@ -5,10 +5,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
@@ -251,38 +251,24 @@ func CreateSAUCERecord(path string) (*SAUCE, string, error) {
 	return sauce, fileData, nil
 }
 
-func ParseSAUCEFromFile(path string) (*SAUCE, string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, "", fmt.Errorf("error reading file %s: %v", path, err)
-	}
-	return ParseSAUCE(data)
-}
-
 // ParseSAUCE parses SAUCE metadata from the last 128 bytes of data
 // Returns nil if no valid SAUCE record is found
 func ParseSAUCE(data []byte) (*SAUCE, string, error) {
-	// SAUCE record is always 128 bytes at the end of the file
-	if len(data) < 128 {
+	// SAUCE record is 128 bytes, preceded by EOF marker '\x1a'
+	// Minimum length is 129 bytes (1 byte EOF + 128 bytes SAUCE)
+	if len(data) < 129 {
 		return nil, "", fmt.Errorf("data too short to contain SAUCE record")
 	}
 
-	// Find the "\x1a" character that indicates the start of the SAUCE record
-	sauceIdx := bytes.Index(data, []byte{0x1a})
-	sauceData := data[sauceIdx+1:]
-
-	// Detect encoding and decode file data to UTF-8
-	fileDataRaw := data
-	if sauceIdx != -1 {
-		fileDataRaw = data[:sauceIdx]
+	// Find the "\x1a" EOF marker - it should be 128 bytes from the end
+	eofIdx := len(data) - 129
+	if eofIdx < 0 || data[eofIdx] != '\x1a' {
+		return nil, "", fmt.Errorf("no valid SAUCE record found")
 	}
-	encoding := parse.DetectEncoding(fileDataRaw)
 
-	fileData, err := parse.DecodeFileContents(fileDataRaw, encoding)
-	if err != nil {
-		log.Printf("Error decoding file data: %v", err)
-		fileData = string(fileDataRaw) // Fallback to raw data
-	}
+	// SAUCE record starts right after the EOF marker
+	sauceIdx := eofIdx + 1
+	sauceData := []byte(data[sauceIdx:])
 
 	reader := bytes.NewReader(sauceData)
 	sauce := &SAUCE{}
@@ -294,6 +280,7 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 
 	// Check if this is a valid SAUCE record
 	if sauce.ID != "SAUCE" {
+		log.DebugFprintf("Invalid SAUCE record ID: '%s'", sauce.ID)
 		return nil, "", fmt.Errorf("no valid SAUCE record found")
 	}
 
@@ -369,7 +356,8 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 		sauce.TInfo4.Name = TInfoNameNone
 	}
 
-	return sauce, string(fileData), nil
+	// Return the data without the EOF marker and SAUCE record
+	return sauce, string(data[:eofIdx]), nil
 }
 
 // HasNonBlinkMode returns true if the iCE Color flag is set (ANSi files)
