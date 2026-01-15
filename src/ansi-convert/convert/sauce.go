@@ -416,10 +416,10 @@ func (s *SAUCE) ToString() string {
 	cReset := "\033[0m"
 	cItalic := "\033[3m"
 
-	fmtStr := fmt.Sprintf("%%s%%-%ds%%s %%v\n", 10)
+	fmtStr := fmt.Sprintf("  %%s%%-%ds%%s %%v\n", 10)
 
 	var sb strings.Builder
-	sb.WriteString(cYellow + cBold + "SAUCE Metadata:\n" + cReset)
+	sb.WriteString(cYellow + cBold + "> SAUCE Metadata:\n" + cReset)
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "ID:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.ID, cReset)))
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Version:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.Version, cReset)))
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Title:", cReset, s.Title))
