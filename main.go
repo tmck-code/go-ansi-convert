@@ -111,15 +111,14 @@ func main() {
 	var sauce *convert.SAUCE
 	var fileData string
 
-	sauce, fileData, err := convert.ParseSAUCE(raw)
+	sauce, fileData, err := convert.ParseSAUCE(raw, encoding)
 	if err != nil {
 		log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
-		sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
+		sauce, fileData, err = convert.CreateSAUCERecord(raw, encoding)
 		if err != nil {
 			log.DebugFprintf("Error creating SAUCE record: %v\n", err)
 			os.Exit(1)
 		}
-		log.DebugFprintf("Created new SAUCE record: %s\n", sauce.ToString())
 	}
 	if args.DisplaySAUCEInfo {
 		fmt.Println(sauce.ToString())

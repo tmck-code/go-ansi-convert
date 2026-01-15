@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
@@ -227,19 +226,14 @@ type SAUCE struct {
 	TInfoS   string     // 22 bytes: Type dependent string (null-terminated)
 }
 
-func CreateSAUCERecord(path string) (*SAUCE, string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, "", fmt.Errorf("error reading file %s: %v", path, err)
-	}
-	encoding := parse.DetectEncoding(data)
+func CreateSAUCERecord(data []byte, encoding string) (*SAUCE, string, error) {
 	fileData, err := parse.DecodeFileContents(data, encoding)
 	if err != nil {
 		return nil, "", fmt.Errorf("error decoding file data: %v", err)
 	}
 	var nLines int
 	var width int
-	log.DebugFprintf("Creating SAUCE record for file: %s. newlines count=%d\n", path, strings.Count(fileData, "\n"))
+	log.DebugFprintf("Creating SAUCE record, newlines count=%d\n", strings.Count(fileData, "\n"))
 	totalChars := parse.UnicodeStringLength(fileData)
 	log.DebugFprintf("Total characters in file: %d, total%%80: %d\n", totalChars, totalChars%80)
 
@@ -267,7 +261,7 @@ func CreateSAUCERecord(path string) (*SAUCE, string, error) {
 
 // ParseSAUCE parses SAUCE metadata from the last 128 bytes of data
 // Returns nil if no valid SAUCE record is found
-func ParseSAUCE(data []byte) (*SAUCE, string, error) {
+func ParseSAUCE(data []byte, encoding string) (*SAUCE, string, error) {
 	// SAUCE record is 128 bytes, preceded by EOF marker '\x1a'
 	// Minimum length is 129 bytes (1 byte EOF + 128 bytes SAUCE)
 	if len(data) < 129 {
@@ -369,7 +363,6 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 		sauce.TInfo3.Name = TInfoNameNone
 		sauce.TInfo4.Name = TInfoNameNone
 	}
-	encoding := parse.DetectEncoding(data)
 	strData, err := parse.DecodeFileContents(data[:eofIdx], encoding)
 	if err != nil {
 		return nil, "", fmt.Errorf("error decoding file data: %v", err)
