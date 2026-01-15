@@ -4,7 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
 // Benchmark tests -------------------------------------------------------------
@@ -24,7 +25,7 @@ func BenchmarkUnicodeStringLength(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				convert.UnicodeStringLength(tc.input)
+				parse.UnicodeStringLength(tc.input)
 			}
 		})
 	}

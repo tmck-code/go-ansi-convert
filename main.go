@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/pborman/getopt/v2"
-	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
 type Args struct {
@@ -25,6 +27,16 @@ type Args struct {
 	DisplaySeparator      string
 	DisplaySeparatorWidth int
 	DisplaySwapped        bool
+	ConvertAns            bool
+	DisplaySAUCEInfo      bool
+	DisplaySAUCEInfoJSON  bool
+	DetectEncoding        bool
+}
+
+// Check DEBUG mode, enables debug logging
+func Debug() bool {
+	debugValue := os.Getenv("DEBUG")
+	return debugValue == "true" || debugValue == "1"
 }
 
 func main() {
@@ -40,14 +52,23 @@ func main() {
 	justify := getopt.BoolLong("justify", 'j', "Justify lines to the same length (sanitise mode only)")
 	optimise := getopt.BoolLong("optimise", 'O', "Optimise ANSI tokens to merge redundant color codes")
 	display := getopt.BoolLong("display", 'd', "Display original and flipped side-by-side in terminal")
+
+	convertAns := getopt.BoolLong("convert-ans", 'c', "Convert an ANSI .ans file (CP437 encoded) to UTF-8 ANSI")
+	displaySAUCE := getopt.BoolLong("display-sauce", 'S', "Display SAUCE metadata from input file (if present)")
+	displaySAUCEInfoJSON := getopt.BoolLong("display-sauce-json", 0, "Display SAUCE metadata from input file in JSON format (if present)")
+	detectEncoding := getopt.BoolLong("detect-encoding", 'e', "Detect if input file is CP437 or ISO-8859-1 encoded")
+
 	displaySep := getopt.StringLong("display-separator", 0, " ", "Separator string between original and flipped when displaying")
 	displaySepWidth := getopt.IntLong("display-separator-width", 0, 1, "Width of separator between original and flipped when displaying")
 	displaySwapped := getopt.BoolLong("display-swapped", 'x', "When displaying, reverse the order of original and flipped")
 
+	getopt.Lookup("convert-ans").SetGroup("operation")
 	getopt.Lookup("flip").SetGroup("operation")
 	getopt.Lookup("sanitise").SetGroup("operation")
 	getopt.Lookup("help").SetGroup("operation")
 	getopt.Lookup("optimise").SetGroup("operation")
+	getopt.Lookup("display-sauce").SetGroup("operation")
+	getopt.Lookup("detect-encoding").SetGroup("operation")
 	getopt.RequiredGroup("operation")
 
 	getopt.Parse()
@@ -67,6 +88,10 @@ func main() {
 		DisplaySeparator:      *displaySep,
 		DisplaySeparatorWidth: *displaySepWidth,
 		DisplaySwapped:        *displaySwapped,
+		ConvertAns:            *convertAns,
+		DisplaySAUCEInfo:      *displaySAUCE,
+		DisplaySAUCEInfoJSON:  *displaySAUCEInfoJSON,
+		DetectEncoding:        *detectEncoding,
 	}
 
 	if args.Help {
@@ -74,8 +99,34 @@ func main() {
 		return
 	}
 
-	input := readInput(args)
-	result := process(args, input)
+	// 1. always detect the encoding
+	// 2. always read & separate the SAUCE record (if present)
+
+	encoding, input, raw := readInput(args)
+	if args.DetectEncoding {
+		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", encoding)
+		return
+	}
+
+	var sauce *convert.SAUCE
+	var fileData string
+
+	sauce, fileData, err := convert.ParseSAUCE(raw)
+	if err != nil {
+		log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
+		sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
+		if err != nil {
+			log.DebugFprintf("Error creating SAUCE record: %v\n", err)
+			os.Exit(1)
+		}
+		log.DebugFprintf("Created new SAUCE record: %s\n", sauce.ToString())
+	}
+	if args.DisplaySAUCEInfo {
+		fmt.Println(sauce.ToString())
+		return
+	}
+
+	result := process(args, fileData, sauce)
 
 	if args.Display {
 		if args.FlipHorizontal {
@@ -133,33 +184,34 @@ func displayAboveBelow(original, flipped string, args Args) {
 	}
 }
 
-func readInput(args Args) string {
+func readInput(args Args) (string, string, []byte) {
+	var raw []byte
+	var err error
+
 	if args.Stdin {
-		return readStdin()
+		raw, err = io.ReadAll(os.Stdin)
 	} else {
-		return readFile(args.InputFile)
+		raw, err = os.ReadFile(args.InputFile)
 	}
-}
-
-func readStdin() string {
-	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
+		log.DebugFprintf("Error reading stdin: %v\n", err)
 		os.Exit(1)
 	}
-	return string(data)
-}
 
-func readFile(path string) string {
-	data, err := os.ReadFile(path)
+	encoding := parse.DetectEncoding(raw)
+	data, err := parse.DecodeFileContents(raw, encoding)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", path, err)
+		log.DebugFprintf("Error decoding file contents: %v\n", err)
 		os.Exit(1)
 	}
-	return string(data)
+
+	return encoding, data, raw
 }
 
-func process(args Args, input string) string {
+func process(args Args, input string, sauce *convert.SAUCE) string {
+	if args.ConvertAns {
+		return convert.ConvertAns(input, *sauce)
+	}
 	if args.Optimise {
 		tokenized := convert.TokeniseANSIString(input)
 		optimised := convert.OptimiseANSITokens(tokenized)
@@ -193,7 +245,7 @@ func writeOutput(args Args, output string) {
 func writeFile(path string, content string) {
 	err := os.WriteFile(path, []byte(content), 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", path, err)
+		log.DebugFprintf("Error writing file %s: %v\n", path, err)
 		os.Exit(1)
 	}
 }

@@ -3,7 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
+	"github.com/tmck-code/go-ansi-convert/test"
 )
 
 func TestUnicodeStringLength(t *testing.T) {
@@ -108,10 +109,8 @@ func TestUnicodeStringLength(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := convert.UnicodeStringLength(tc.input)
-			if result != tc.expected {
-				t.Errorf("UnicodeStringLength(%q) = %d; want %d", tc.input, result, tc.expected)
-			}
+			result := parse.UnicodeStringLength(tc.input)
+			test.Assert(tc.expected, result, t)
 		})
 	}
 }

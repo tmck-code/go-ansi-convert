@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
 // UnicodeChar is an exported struct for use in other packages
@@ -26,7 +27,8 @@ var (
 // To do this, either first run `export DEBUG=true`, and then run the test command,
 // or do it all at once with `DEBUG=true go test -v ./test“
 func Debug() bool {
-	return os.Getenv("DEBUG") == "true"
+	debugValue := os.Getenv("DEBUG")
+	return debugValue == "true" || debugValue == "1"
 }
 
 // Fails a test with a formatted message showing the expected vs. result. (These are both printed in %#v form)
@@ -38,11 +40,12 @@ func Fail(expected interface{}, result interface{}, t *testing.T) {
 // Asserts that their Go syntax representations (%#v) are the same.
 // Prints a message on success if the ENV var DEBUG is set to "true".
 // Fails the test if this is not true.
+// accepts an optional param "render" that acts like debug mode when set to true
 func Assert(expected interface{}, result interface{}, t *testing.T) {
 	expectedString, resultString := fmt.Sprintf("%#v", expected), fmt.Sprintf("%#v", result)
 	if expectedString == resultString {
 		if Debug() {
-			fmt.Printf("\x1b[38;5;46m%s items match!\x1b[0m\n> expected:\t%#v\x1b[0m\n>   result:\t%#v\x1b[0m\n\n", successMark, expected, result)
+			t.Logf("\x1b[38;5;46m%s items match! expected/result:\x1b[0m\n\n%#v\x1b[0m\n\n", successMark, expected)
 		}
 		return
 	}
@@ -57,7 +60,7 @@ func AssertContains[T any](slice []T, item T, t *testing.T) {
 	for _, el := range slice {
 		if reflect.DeepEqual(el, item) {
 			if Debug() {
-				fmt.Printf("%s found expected item!\n>  item:\t%v\n> slice:\t%v\n", successMark, item, slice)
+				t.Logf("%s found expected item!\n>  item:\t%v\n> slice:\t%v\n", successMark, item, slice)
 			}
 			return
 		}
@@ -76,12 +79,12 @@ func FlattenJSON(json string) string {
 // AddBorder adds a box border around a multi-line string, handling ANSI escape codes.
 func AddBorder(s string, pad bool) string {
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-	maxLen := convert.LongestUnicodeLineLength(lines)
+	maxLen := parse.LongestUnicodeLineLength(lines)
 	result := make([]string, len(lines)+2)
 
 	for i, line := range lines {
 		if pad {
-			visualLen := convert.UnicodeStringLength(line)
+			visualLen := parse.UnicodeStringLength(line)
 			padding := strings.Repeat(" ", maxLen-visualLen)
 			result[i+1] = " " + line + padding + "┊"
 		} else {
@@ -107,33 +110,33 @@ func TestTitleResult() string {
 }
 
 // PrintSimpleTestResults prints formatted test results for simple tests (with quoted output).
-func PrintSimpleTestResults(input string, expected string, result string) {
-	fmt.Printf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
-	fmt.Printf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
-	fmt.Printf("%s\n%v\x1b[0m\n", TestTitleResult(), AddBorder(result, false))
+func PrintSimpleTestResults(input string, expected string, result string, t *testing.T) {
+	t.Logf("%s\n%v\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	t.Logf("%s\n%v\x1b[0m", TestTitleExpected(), AddBorder(expected, false))
+	t.Logf("%s\n%v\x1b[0m", TestTitleResult(), AddBorder(result, false))
 }
 
 // PrintANSITestResults prints formatted test results for ANSI tokenization and reversal tests.
 func PrintANSITestResults(input string, expected, result [][]convert.ANSILineToken, t *testing.T) {
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
-	fmt.Printf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
-	fmt.Printf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
+	t.Logf("%s\n%s\x1b[0m", TestTitleInput(), AddBorder(input, false))
+	t.Logf("%s\n%s\x1b[0m", TestTitleExpected(), AddBorder(convert.BuildANSIString(expected, 0), false))
+	t.Logf("%s\n%s\x1b[0m\n", TestTitleResult(), AddBorder(convert.BuildANSIString(result, 0), false))
 
 	if Debug() {
 		for i, line := range expected {
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), line)
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), result[i])
+			t.Logf("%s %+v\x1b[0m\n", TestTitleExpected(), line)
+			t.Logf("%s %+v\x1b[0m\n", TestTitleResult(), result[i])
 
 			eb, err := json.MarshalIndent(line, "", "  ")
 			if err != nil {
-				fmt.Println("error:", err)
+				t.Logf("error: %v", err)
 			}
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleExpected(), string(eb))
+			t.Logf("%s %+v\x1b[0m\n", TestTitleExpected(), string(eb))
 			rb, err := json.MarshalIndent(result[i], "", "  ")
 			if err != nil {
-				fmt.Println("error:", err)
+				t.Logf("error: %v", err)
 			}
-			fmt.Printf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
+			t.Logf("%s %+v\x1b[0m\n", TestTitleResult(), string(rb))
 			for j, token := range result[i] {
 				Assert(line[j], token, t)
 				if (j + 1) < len(line) {
@@ -142,5 +145,21 @@ func PrintANSITestResults(input string, expected, result [][]convert.ANSILineTok
 			}
 			Assert(line, result[i], t)
 		}
+	}
+}
+
+func PrintSAUCETestResults(input string, expected, result *convert.SAUCE, t *testing.T) {
+	if Debug() {
+		eb, err := json.MarshalIndent(expected, "", "  ")
+		if err != nil {
+			t.Logf("error: %v", err)
+		}
+		t.Logf("%s\n%+v\x1b[0m\n", TestTitleExpected(), string(eb))
+		rb, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			t.Logf("error: %v", err)
+		}
+		t.Logf("%s\n%+v\x1b[0m\n", TestTitleResult(), string(rb))
+		Assert(expected, result, t)
 	}
 }

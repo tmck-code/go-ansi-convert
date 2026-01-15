@@ -1,10 +1,11 @@
 package test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
-	"github.com/tmck-code/go-ansi-convert/src/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
@@ -90,19 +91,19 @@ func TestANSITokenise(t *testing.T) {
 					convert.ANSILineToken{FG: "", BG: "", T: "    "},
 					convert.ANSILineToken{FG: "", BG: "\x1b[49m", T: "   "},
 
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;142m", BG: "\u001b[48;5;16m", T: "▄▄▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;142m", BG: "\x1b[48;5;16m", T: "▄▄▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄▄"},
 				},
 				{
 					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "     ▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;58m", BG: "\u001b[48;5;16m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;58m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;70m", T: " "},
-					convert.ANSILineToken{FG: "\u001b[38;5;70m", BG: "\u001b[48;5;227m", T: "    "},
-					convert.ANSILineToken{FG: "\u001b[38;5;227m", BG: "\u001b[48;5;237m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;237m", BG: "\u001b[48;5;16m", T: "▄"},
-					convert.ANSILineToken{FG: "\u001b[38;5;16m", BG: "\u001b[49m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;58m", BG: "\x1b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;58m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;70m", T: " "},
+					convert.ANSILineToken{FG: "\x1b[38;5;70m", BG: "\x1b[48;5;227m", T: "    "},
+					convert.ANSILineToken{FG: "\x1b[38;5;227m", BG: "\x1b[48;5;237m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;237m", BG: "\x1b[48;5;16m", T: "▄"},
+					convert.ANSILineToken{FG: "\x1b[38;5;16m", BG: "\x1b[49m", T: "▄"},
 				},
 			},
 		},
@@ -209,6 +210,73 @@ func TestANSITokenise(t *testing.T) {
 			expected: [][]convert.ANSILineToken{
 				{
 					convert.ANSILineToken{FG: "\x1b[33m", BG: "", T: " text here!"},
+				},
+			},
+		},
+		{
+			name:  "Handles control characters and truecolor codes",
+			input: "\x1b[37m\x1b[1;168;168;168t  \x1b[1m\x1b[1;224;224;224txxxx\x1b[0m\x1b[1;168;168;168t.²²'\x1b[34m\x1b[1;24;56;88t.xX²xx²²²x²XXXx. \x1b[37m\x1b[1;168;168;168t`XXXXXXl   \x1b[35m\x1b[1;144;16;64t    \x1b[45;30m\x1b[0;168;48;76tâ\x1b[40;35m\x1b[1;144;16;64tâ\"¯¯\"\x1b[45;30m\x1b[0;168;48;76tx\x1b[0m\r\n",
+			expected: [][]convert.ANSILineToken{
+				{
+					{FG: "\x1b[38;2;168;168;168m", BG: "", T: "  "},
+					{FG: "\x1b[1m\x1b[38;2;224;224;224m", BG: "", T: "xxxx"},
+					{FG: "\x1b[0m", BG: "", T: ""},
+					{FG: "\x1b[38;2;168;168;168m", BG: "", T: ".²²'"},
+					{FG: "\x1b[38;2;24;56;88m", BG: "", T: ".xX²xx²²²x²XXXx. "},
+					{FG: "\x1b[38;2;168;168;168m", BG: "", T: "`XXXXXXl   "},
+					{FG: "\x1b[38;2;144;16;64m", BG: "\x1b[49m", T: "    "},
+					{FG: "\x1b[30m", BG: "\x1b[48;2;168;48;76m", T: "â"},
+					{FG: "\x1b[38;2;144;16;64m", BG: "\x1b[40m", T: "â\"¯¯\""},
+					{FG: "\x1b[30m", BG: "\x1b[48;2;168;48;76m", T: "x"},
+					{FG: "\x1b[0m", BG: "", T: ""},
+				},
+			},
+		},
+		{
+			name: "tokenise multiline 2",
+			input: strings.Join(
+				[]string{
+					"    |    \x1b[30m\x1b[1;87;87;87t| \x1b[36m\x1b[1;87;255;255t|\x1b[0m\x1b[0;0;0;0t\x1b[1;171;171;171t\x1b[11C\x1b[1;36m\x1b[1;87;255;255t____/ \x1b[30m\x1b[1;87;87;87t/¯.   ¯\\__________________.'  !·\x1b[0;35m\x1b[0;0;0;0t\x1b[1;171;0;171t.:\x1b[33m\x1b[1;171;87;0tY \x1b[1;31m\x1b[1;255;87;87tY   \x1b[0;33m\x1b[0;0;0;0t\x1b[1;171;87;0tj ! \x1b[1;31m\x1b[1;255;87;87t| \x1b[0;35m\x1b[0;0;0;0t\x1b[1;171;0;171t:\x1b[1;33m\x1b[1;255;255;87t|",
+					"    |\x1b[41m\x1b[0;171;0;0t  \x1b[0;31m\x1b[0;0;0;0t\x1b[1;171;0;0t||\x1b[1;30m\x1b[1;87;87;87t| \x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t!_\x1b[1m\x1b[1;87;255;255t_\x1b[0;36m\x1b[0;0;0;0t\x1b[1;0;171;171t_\x1b[1m\x1b[1;87;255;255t_.-----· \x1b[30m\x1b[1;87;87;87t____/ \x1b[0;33m\x1b[0;0;0;0t\x1b[1;171;87;0t/\x1b[37m\x1b[1;171;171;171t\x1b[5C\x1b[1;30m\x1b[1;87;87;87t.·--------------------·\x1b[0;35m\x1b[0;0;0;0t\x1b[1;171;0;171t.:::\x1b[33m\x1b[1;171;87;0t' \x1b[1;31m\x1b[1;255;87;87t`. \x1b[0;33m\x1b[0;0;0;0t\x1b[1;171;87;0t~ / \x1b[1;31m\x1b[1;255;87;87t.'\x1b[0;35m\x1b[0;0;0;0t\x1b[1;171;0;171t.:\x1b[1;33m\x1b[1;255;255;87t|\r\n",
+				},
+				"\n",
+			),
+			expected: [][]convert.ANSILineToken{
+				{
+					{FG: "", BG: "", T: "    |    "},
+					{FG: "\x1b[38;2;87;87;87m", BG: "", T: "| "},
+					{FG: "\x1b[38;2;87;255;255m", BG: "\x1b[49m", T: "|"},
+					{FG: "\x1b[38;2;171;171;171m", BG: "\x1b[40m", T: "           "},
+					{FG: "\x1b[38;2;87;255;255m", BG: "\x1b[40m", T: "____/ "},
+					{FG: "\x1b[38;2;87;87;87m", BG: "\x1b[40m", T: "/¯.   ¯\\__________________.'  !·"},
+					{FG: "\x1b[38;2;171;0;171m", BG: "\x1b[40m", T: ".:"},
+					{FG: "\x1b[38;2;171;87;0m", BG: "\x1b[40m", T: "Y "},
+					{FG: "\x1b[38;2;255;87;87m", BG: "\x1b[40m", T: "Y   "},
+					{FG: "\x1b[38;2;171;87;0m", BG: "\x1b[40m", T: "j ! "},
+					{FG: "\x1b[38;2;255;87;87m", BG: "\x1b[40m", T: "| "},
+					{FG: "\x1b[38;2;171;0;171m", BG: "\x1b[40m", T: ":"},
+					{FG: "\x1b[38;2;255;255;87m", BG: "\x1b[40m", T: "|"},
+				},
+				{
+					{FG: "\x1b[38;2;255;255;87m", BG: "\x1b[40m", T: "    |"},
+					{FG: "\x1b[38;2;255;255;87m", BG: "\x1b[48;2;171;0;0m", T: "  "},
+					{FG: "\x1b[38;2;171;0;0m", BG: "\x1b[40m", T: "||"},
+					{FG: "\x1b[38;2;87;87;87m", BG: "\x1b[40m", T: "| "},
+					{FG: "\x1b[38;2;0;171;171m", BG: "\x1b[40m", T: "!_"},
+					{FG: "\x1b[1m\x1b[38;2;87;255;255m", BG: "\x1b[40m", T: "_"},
+					{FG: "\x1b[1m\x1b[38;2;0;171;171m", BG: "\x1b[40m", T: "_"},
+					{FG: "\x1b[1m\x1b[38;2;87;255;255m", BG: "\x1b[40m", T: "_.-----· "},
+					{FG: "\x1b[1m\x1b[38;2;87;87;87m", BG: "\x1b[40m", T: "____/ "},
+					{FG: "\x1b[1m\x1b[38;2;171;87;0m", BG: "\x1b[40m", T: "/"},
+					{FG: "\x1b[1m\x1b[38;2;171;171;171m", BG: "\x1b[40m", T: "     "},
+					{FG: "\x1b[1m\x1b[38;2;87;87;87m", BG: "\x1b[40m", T: ".·--------------------·"},
+					{FG: "\x1b[1m\x1b[38;2;171;0;171m", BG: "\x1b[40m", T: ".:::"},
+					{FG: "\x1b[1m\x1b[38;2;171;87;0m", BG: "\x1b[40m", T: "' "},
+					{FG: "\x1b[1m\x1b[38;2;255;87;87m", BG: "\x1b[40m", T: "`. "},
+					{FG: "\x1b[1m\x1b[38;2;171;87;0m", BG: "\x1b[40m", T: "~ / "},
+					{FG: "\x1b[1m\x1b[38;2;255;87;87m", BG: "\x1b[40m", T: ".'"},
+					{FG: "\x1b[1m\x1b[38;2;171;0;171m", BG: "\x1b[40m", T: ".:"},
+					{FG: "\x1b[1m\x1b[38;2;255;255;87m", BG: "\x1b[40m", T: "|"},
 				},
 			},
 		},
@@ -379,6 +447,82 @@ func TestANSITokenise(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := convert.TokeniseANSIString(tc.input)
 			test.PrintANSITestResults(tc.input, tc.expected, result, t)
+			test.Assert(tc.expected, result, t)
+		})
+	}
+}
+
+func TestTokeniseANSIFile(t *testing.T) {
+	testCases := []struct {
+		name     string
+		filepath string
+		expected [][]convert.ANSILineToken
+	}{
+		{
+			name:     "File with empty lines",
+			filepath: "../data/bhe-peaceofmind.txt",
+			expected: [][]convert.ANSILineToken{
+				{{FG: "", BG: "", T: ""}},
+				{{FG: "", BG: "", T: ""}},
+				{{FG: "", BG: "", T: "                              .                ."}},
+				{{FG: "", BG: "", T: "                              .       /\\       ."}},
+				{{FG: "", BG: "", T: "                              :     _/  \\_     :"}},
+				{{FG: "", BG: "", T: "                         ___  |____/  __  \\____|  ___"}},
+				{{FG: "", BG: "", T: "       _____ ___ ____ __/  \\\\ // .___/  \\___. \\\\ //  \\__ ____ ___ _____"}},
+				{{FG: "", BG: "", T: "      / _ __\\\\__\\\\___\\\\_.   \\\\/ <|_ _ /\\ _ _|> \\//   ._//___//__//__ _ \\"}},
+				{{FG: "", BG: "", T: "   ,_/   _______________| __ '    /Y \\\\// Y\\    ' __ |______________    \\_,"}},
+				{{FG: "", BG: "", T: " _ __ ___\\==============|/  \\____/ .  \\/  . \\____/  \\|=============/___ __ _"}},
+				{{FG: "", BG: "", T: " . _____________________________.  _________   _______    _______________. ."}},
+				{{FG: "", BG: "", T: " . \\_______      \\_________     |__\\___     \\_/   ___/____\\_________     | ."}},
+				{{FG: "", BG: "", T: " :  | .  |/       / .   | /     |.  ___      | .  \\|       | .   | /     | :"}},
+				{{FG: "", BG: "", T: " |  | .  ________/| .   |/      |.  \\ |      | .   |       | .   |/      | |"}},
+				{{FG: "", BG: "", T: " |  | :: \\      | | ::  /_______|::  \\|      | ::  '       | ::  /_______| |"}},
+				{{FG: "", BG: "", T: " |  | :::.\\     | | :: _      | :::.  \\      | :::.        | :: _      |   |"}},
+				{{FG: "", BG: "", T: " |  |______\\    | |_____\\     |________\\     |___          |_____\\     |   |"}},
+				{{FG: "", BG: "", T: " :     .  . \\___| _ _____\\____|         \\____|   \\_________|   .  \\____|   :"}},
+				{{FG: "", BG: "", T: " _ ___  \\  \\/  __  _ ___/                           \\___ _  __  \\/  .  ___ _"}},
+				{{FG: "", BG: "", T: " .._  \\  \\    .\\/. \\\\\\_      _____________________    _/// .\\/.    /  /  _.."}},
+				{{FG: "", BG: "", T: " || \\__\\__)  _|  |_   /    ./         \\_         /    \\   _|  |_  (__/__/ ||"}},
+				{{FG: "", BG: "", T: " :| (___\\   _\\    /_  \\.   |    ___    |     ___/___ ./  _\\    /_   /___) |:"}},
+				{{FG: "", BG: "", T: " . \\ \\   \\  \\  /\\  /  //   | .  | /    | .         / \\\\  \\  /\\  /  /   / / ."}},
+				{{FG: "", BG: "", T: " . \\\\ \\__ \\  \\ \\/ /  /.    | .  |/     | .    ____/   .\\  \\ \\/ /  / __/ // ."}},
+				{{FG: "", BG: "", T: " |\\ '\\__/ /  /    \\  \\     | :: '      | ::      |     /  /    \\  \\ \\__/' /|"}},
+				{{FG: "", BG: "", T: " ' _ ____/  /  /\\  \\  '    | :::.  ____| ::: ____|    '  /  /\\  \\  \\____ _ '"}},
+				{{FG: "", BG: "", T: ". _________/  /  \\  \\_ __  |______/    |____/       __ _/  /  \\  \\__________ ."}},
+				{{FG: "", BG: "", T: " \\\\  ________/    '     /                           \\     '    \\_________  //"}},
+				{{FG: "", BG: "", T: " // / ___   ______   ________ ________ ______  ._________________    ___ \\ \\\\"}},
+				{{FG: "", BG: "", T: " \\\\ \\ \\/  ./      \\_/      \\ \\\\       \\_     \\_|     \\________   \\_.  \\/ / //"}},
+				{{FG: "", BG: "", T: "  '\\ \\    | .    _   _      \\__________/.   .  |     ./.   | /     |    / /'"}},
+				{{FG: "", BG: "", T: "   / /___ | .     \\_/        | .      | .   |  |     | .   |/      | ___\\ \\"}},
+				{{FG: "", BG: "", T: "  /___  / | ::     |         | ::     | ::  |  |     | ::  |       | \\  ___\\"}},
+				{{FG: "", BG: "", T: "  __ / /  | :::.   |         | :::.   | ::: |  '     | ::__|       |  \\ \\ __"}},
+				{{FG: "", BG: "", T: " .\\_ \\ \\  |________|      ___|____    |_____|        |___\\ '      _|  / / _/."}},
+				{{FG: "", BG: "", T: "  _ __\\ \\___ __ _  |_____/        \\___|     |________|    \\______/  _/ /__ _"}},
+				{{FG: "", BG: "", T: " (_\\\\__   _                                                        _   __//_)"}},
+				{{FG: "", BG: "", T: "    '(_\\  \\  - -- ---+-[ iT's hARd tO fiND yOUr pEACe ]-+--- -- -  /  /_)'"}},
+				{{FG: "", BG: "", T: "       '\\__\\________________   ._.    __    ._.   ________________/__/'"}},
+				{{FG: "", BG: "", T: "         bHe'===============\\_.  |___ \\/ ___|  ._/==============='sE!"}},
+				{{FG: "", BG: "", T: "                   '----------|____  \\__/  ____|----------'"}},
+				{{FG: "", BG: "", T: "                              :    \\_    _/    :"}},
+				{{FG: "", BG: "", T: "                              :      \\  /      :"}},
+				{{FG: "", BG: "", T: "                              .       \\/       ."}},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fileData, err := os.ReadFile(tc.filepath)
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
+			}
+			_, data, err := convert.ParseSAUCE(fileData)
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
+			}
+
+			result := convert.TokeniseANSIString(data)
+			test.PrintANSITestResults(data, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
 		})
 	}
