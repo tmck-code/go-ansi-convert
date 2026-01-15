@@ -272,7 +272,10 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 	sauceData := data[sauceIdx+1:]
 
 	// Detect encoding and decode file data to UTF-8
-	fileDataRaw := data[:sauceIdx]
+	fileDataRaw := data
+	if sauceIdx != -1 {
+		fileDataRaw = data[:sauceIdx]
+	}
 	encoding := parse.DetectEncoding(fileDataRaw)
 
 	fileData, err := parse.DecodeFileContents(fileDataRaw, encoding)
