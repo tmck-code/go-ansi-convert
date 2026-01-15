@@ -1,6 +1,7 @@
 package test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -511,11 +512,16 @@ func TestTokeniseANSIFile(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, data, err := convert.ParseSAUCEFromFile(tc.filepath)
+			fileData, err := os.ReadFile(tc.filepath)
 			if err != nil {
 				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
 			}
-			result := convert.TokeniseANSIString(string(data))
+			_, data, err := convert.ParseSAUCE(fileData)
+			if err != nil {
+				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
+			}
+
+			result := convert.TokeniseANSIString(data)
 			test.PrintANSITestResults(data, tc.expected, result, t)
 			test.Assert(tc.expected, result, t)
 		})

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
@@ -129,10 +130,18 @@ func TestConvertAnsFiles(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Read the original .ans file in CP437 encoding
-
-			sauce, input, err := convert.ParseSAUCEFromFile(tc.inputFpath)
+			data, err := os.ReadFile(tc.inputFpath)
 			if err != nil {
-				t.Fatalf("Failed to parse SAUCE record: %v", err)
+				t.Fatalf("Failed to read input file: %v", err)
+			}
+			sauce, input, err := convert.ParseSAUCE(data)
+			if err != nil {
+				encoding := parse.DetectEncoding(data)
+				decodedData, decodeErr := parse.DecodeFileContents(data, encoding)
+				if decodeErr != nil {
+					t.Fatalf("Failed to parse SAUCE or decode file data: %v", err)
+				}
+				input = decodedData
 			}
 
 			// Read the expected converted .ansi file
@@ -141,6 +150,8 @@ func TestConvertAnsFiles(t *testing.T) {
 				t.Fatalf("Failed to read expected output file: %v", err)
 			}
 			expected := string(expectedBytes)
+
+			fmt.Println("Converting", tc.inputFpath, "with detected SAUCE:", sauce)
 
 			result := convert.ConvertAns(input, *sauce)
 			test.Assert(expected, result, t)

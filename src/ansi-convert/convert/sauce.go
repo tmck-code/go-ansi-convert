@@ -355,9 +355,14 @@ func ParseSAUCE(data []byte) (*SAUCE, string, error) {
 		sauce.TInfo3.Name = TInfoNameNone
 		sauce.TInfo4.Name = TInfoNameNone
 	}
+	encoding := parse.DetectEncoding(data)
+	strData, err := parse.DecodeFileContents(data[:eofIdx], encoding)
+	if err != nil {
+		return nil, "", fmt.Errorf("error decoding file data: %v", err)
+	}
 
 	// Return the data without the EOF marker and SAUCE record
-	return sauce, string(data[:eofIdx]), nil
+	return sauce, strData, nil
 }
 
 // HasNonBlinkMode returns true if the iCE Color flag is set (ANSi files)

@@ -39,10 +39,10 @@ func DetectEncoding(data []byte) string {
 		isoCount := bytes.Count(ISOTranslated, ch)
 
 		if cp437Count > isoCount {
-			log.DebugFprintf("  - char %q: cp437=%d, \x1b[91miso=%d\x1b[0m\n", ch, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: \x1b[91mcp437=%d\x1b[0m, iso=%d\n", ch, cp437Count, isoCount)
 			pointsForISO += 1
 		} else if isoCount > cp437Count {
-			log.DebugFprintf("  - char %q: \x1b[91mcp437=%d\x1b[0m, iso=%d\n", ch, cp437Count, isoCount)
+			log.DebugFprintf("  - char %q: cp437=%d, \x1b[91miso=%d\x1b[0m\n", ch, cp437Count, isoCount)
 			pointsForCP437 += 1
 		}
 	}
@@ -54,12 +54,11 @@ func DetectEncoding(data []byte) string {
 			blockCharCounts[string(ch)] = cp437Count
 		}
 	}
-	if len(blockCharCounts) >= 1 {
+	log.DebugFprintf("  - detected %d different block characters: %+v\n", len(blockCharCounts), blockCharCounts)
+	if len(blockCharCounts) > 1 {
 		pointsForCP437 += len(blockCharCounts) + 1
-		log.DebugFprintf("  - detected %d different block characters, adding %d points to CP437\n", len(blockCharCounts), len(blockCharCounts))
 	} else if len(blockCharCounts) == 0 {
 		pointsForISO += 3
-		log.DebugFprintf("  - detected no block characters, adding 3 points to ISO-8859-1\n")
 	}
 
 	// having more of these chars is usually good

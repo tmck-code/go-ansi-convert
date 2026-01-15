@@ -102,7 +102,7 @@ func main() {
 	// 1. always detect the encoding
 	// 2. always read & separate the SAUCE record (if present)
 
-	encoding, input := readInput(args)
+	encoding, input, raw := readInput(args)
 	if args.DetectEncoding {
 		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", encoding)
 		return
@@ -111,7 +111,7 @@ func main() {
 	var sauce *convert.SAUCE
 	var fileData string
 
-	sauce, fileData, err := convert.ParseSAUCE(input)
+	sauce, fileData, err := convert.ParseSAUCE(raw)
 	if err != nil {
 		log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
 		sauce, fileData, err = convert.CreateSAUCERecord(args.InputFile)
@@ -183,7 +183,7 @@ func displayAboveBelow(original, flipped string, args Args) {
 	}
 }
 
-func readInput(args Args) (string, string) {
+func readInput(args Args) (string, string, []byte) {
 	var raw []byte
 	var err error
 
@@ -204,7 +204,7 @@ func readInput(args Args) (string, string) {
 		os.Exit(1)
 	}
 
-	return encoding, data
+	return encoding, data, raw
 }
 
 func process(args Args, input string, sauce *convert.SAUCE) string {
