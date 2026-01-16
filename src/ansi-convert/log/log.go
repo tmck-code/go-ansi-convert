@@ -9,6 +9,10 @@ var (
 	DEBUG bool = os.Getenv("DEBUG") != ""
 )
 
+func DebugMode() bool {
+	return DEBUG
+}
+
 func DebugFprintf(format string, a ...interface{}) {
 	if DEBUG {
 		fmt.Fprintf(os.Stderr, format, a...)

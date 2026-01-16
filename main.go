@@ -117,6 +117,7 @@ func main() {
 		fmt.Println(sauce.ToString())
 		return
 	}
+	log.DebugFprintln(sauce.ToString())
 
 	result := process(args, fileData, sauce)
 
