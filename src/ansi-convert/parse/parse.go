@@ -77,15 +77,15 @@ func DetectEncoding(data []byte) string {
 	}
 
 	if pointsForCP437 > pointsForISO {
-		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n  - \x1b[92mCP437\x1b[0m:      %d\n  - ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
-		log.DebugFprintln("  \x1b[1mDetected encoding: \x1b[1;92mCP437\x1b[0m\n")
+		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n    - \x1b[92mCP437\x1b[0m:      %d\n    - ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;92mCP437\x1b[0m\n\n")
 		return "cp437"
 	} else if pointsForISO > pointsForCP437 {
-		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n  - CP437:      %d\n  - \x1b[92mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
-		log.DebugFprintln("  \x1b[1mDetected encoding: \x1b[1;92mISO-8859-1\x1b[0m\n")
+		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n    - CP437:      %d\n    - \x1b[92mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;92mISO-8859-1\x1b[0m\n\n")
 		return "iso-8859-1"
 	}
-	log.DebugFprintln("  \x1b[1mDetected encoding: \x1b[1;93mASCII\x1b[0m (fallback)")
+	log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;93mASCII\x1b[0m (fallback)\n\n")
 	return "ascii"
 }
 

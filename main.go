@@ -104,21 +104,14 @@ func main() {
 
 	encoding, input, raw := readInput(args)
 	if args.DetectEncoding {
-		fmt.Printf("Detected encoding: \x1b[93m%s\x1b[0m\n", encoding)
+		fmt.Printf("%s\n", encoding)
 		return
 	}
 
-	var sauce *convert.SAUCE
-	var fileData string
-
-	sauce, fileData, err := convert.ParseSAUCE(raw, encoding)
+	sauce, fileData, err := convert.SAUCERecord(raw, encoding)
 	if err != nil {
-		log.DebugFprintf("Error parsing SAUCE record: %v\n", err)
-		sauce, fileData, err = convert.CreateSAUCERecord(raw, encoding)
-		if err != nil {
-			log.DebugFprintf("Error creating SAUCE record: %v\n", err)
-			os.Exit(1)
-		}
+		log.DebugFprintf("\x1b[91mUnable to determine file info: \x1b[0m%v\n", err)
+		os.Exit(1)
 	}
 	if args.DisplaySAUCEInfo {
 		fmt.Println(sauce.ToString())

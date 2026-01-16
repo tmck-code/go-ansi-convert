@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
@@ -227,24 +228,28 @@ type SAUCE struct {
 }
 
 func CreateSAUCERecord(data []byte, encoding string) (*SAUCE, string, error) {
+	log.DebugFprintln("\x1b[1;93m> Creating SAUCE metadata\x1b[0m")
 	fileData, err := parse.DecodeFileContents(data, encoding)
 	if err != nil {
 		return nil, "", fmt.Errorf("error decoding file data: %v", err)
 	}
 	var nLines int
 	var width int
-	log.DebugFprintf("Creating SAUCE record, newlines count=%d\n", strings.Count(fileData, "\n"))
+	log.DebugFprintf("  ? %-17s %d\n", "newlines count:", strings.Count(fileData, "\n"))
 	totalChars := parse.UnicodeStringLength(fileData)
-	log.DebugFprintf("Total characters in file: %d, total%%80: %d\n", totalChars, totalChars%80)
+	log.DebugFprintf("  ? %-17s %d\n", "total characters:", totalChars)
+	log.DebugFprintf("  ? %-17s %d\n", "total % 80:", totalChars%80)
 
+	log.DebugFprintf("  \x1b[1m%s\x1b[0m\n", "Calculated:")
 	if strings.Count(fileData, "\n") == 0 || totalChars%80 == 0 {
 		width = 80
 		nLines = int(totalChars / width)
 	} else {
 		nLines = strings.Count(fileData, "\n")
 		width = parse.LongestUnicodeLineLength(strings.Split(fileData, "\n"))
-		log.DebugFprintf("Calculated width=%d from longest line length\n", width)
 	}
+	log.DebugFprintf("    - %-15s %d\n", "width:", width)
+	log.DebugFprintf("    - %-15s %d\n\n", "nLines:", nLines)
 
 	sauce := &SAUCE{
 		ID:       "SAUCE",
@@ -262,6 +267,8 @@ func CreateSAUCERecord(data []byte, encoding string) (*SAUCE, string, error) {
 // ParseSAUCE parses SAUCE metadata from the last 128 bytes of data
 // Returns nil if no valid SAUCE record is found
 func ParseSAUCE(data []byte, encoding string) (*SAUCE, string, error) {
+	log.DebugFprintln("\x1b[1;93m> Parsing SAUCE metadata\x1b[0m")
+
 	// SAUCE record is 128 bytes, preceded by EOF marker '\x1a'
 	// Minimum length is 129 bytes (1 byte EOF + 128 bytes SAUCE)
 	if len(data) < 129 {
@@ -372,6 +379,19 @@ func ParseSAUCE(data []byte, encoding string) (*SAUCE, string, error) {
 	return sauce, strData, nil
 }
 
+func SAUCERecord(data []byte, encoding string) (*SAUCE, string, error) {
+	sauce, fileData, err := ParseSAUCE(data, encoding)
+	if err != nil {
+		log.DebugFprintf("\x1b[91mError parsing SAUCE record: \x1b[0m%v\n\n", err)
+		sauce, fileData, err = CreateSAUCERecord(data, encoding)
+		if err != nil {
+			log.DebugFprintf("\x1b[91mError creating SAUCE record: \x1b[0m%v\n\n", err)
+			os.Exit(1)
+		}
+	}
+	return sauce, fileData, nil
+}
+
 // HasNonBlinkMode returns true if the iCE Color flag is set (ANSi files)
 func (s *SAUCE) HasNonBlinkMode() bool {
 	return s.TFlags&ANSiFlagNonBlinkMode != 0
@@ -411,15 +431,16 @@ func (s *SAUCE) ToJSON() (string, error) {
 }
 
 func (s *SAUCE) ToString() string {
-	cYellow := "\033[33m"
+	cYellow := "\033[93m"
 	cBold := "\033[1m"
 	cReset := "\033[0m"
 	cItalic := "\033[3m"
+	cCyan := "\033[36m"
 
 	fmtStr := fmt.Sprintf("  %%s%%-%ds%%s %%v\n", 10)
 
 	var sb strings.Builder
-	sb.WriteString(cYellow + cBold + "> SAUCE Metadata:\n" + cReset)
+	sb.WriteString(cYellow + cBold + "> SAUCE Metadata:\n\n" + cReset)
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "ID:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.ID, cReset)))
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Version:", cReset, fmt.Sprintf("%s%s%s", cItalic, s.Version, cReset)))
 	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Title:", cReset, s.Title))
@@ -449,8 +470,8 @@ func (s *SAUCE) ToString() string {
 		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Name:", cReset, s.TInfo4.Name))
 		sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "  Value:", cReset, s.TInfo4.Value))
 	}
-	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "Comments:", cReset, string(s.Comments)))
-	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TFlags:", cReset, string(s.TFlags)))
-	sb.WriteString(fmt.Sprintf(fmtStr, cYellow, "TInfoS:", cReset, s.TInfoS))
+	sb.WriteString(fmt.Sprintf(fmtStr, cCyan, "Comments:", cReset, string(s.Comments)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cCyan, "TFlags:", cReset, string(s.TFlags)))
+	sb.WriteString(fmt.Sprintf(fmtStr, cCyan, "TInfoS:", cReset, s.TInfoS))
 	return sb.String()
 }
