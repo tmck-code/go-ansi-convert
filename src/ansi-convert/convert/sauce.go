@@ -272,12 +272,14 @@ func ParseSAUCE(data []byte, encoding string) (*SAUCE, string, error) {
 	// SAUCE record is 128 bytes, preceded by EOF marker '\x1a'
 	// Minimum length is 129 bytes (1 byte EOF + 128 bytes SAUCE)
 	if len(data) < 129 {
+		log.DebugFprintln("Data too short to contain SAUCE record")
 		return nil, "", fmt.Errorf("data too short to contain SAUCE record")
 	}
 
 	// Find the "\x1a" EOF marker - it should be 128 bytes from the end
 	eofIdx := len(data) - 129
 	if eofIdx < 0 || data[eofIdx] != '\x1a' {
+		log.DebugFprintln("No EOF marker found before SAUCE record")
 		return nil, "", fmt.Errorf("no valid SAUCE record found")
 	}
 
@@ -372,6 +374,7 @@ func ParseSAUCE(data []byte, encoding string) (*SAUCE, string, error) {
 	}
 	strData, err := parse.DecodeFileContents(data[:eofIdx], encoding)
 	if err != nil {
+		log.DebugFprintf("Error decoding file data: %v\n", err)
 		return nil, "", fmt.Errorf("error decoding file data: %v", err)
 	}
 

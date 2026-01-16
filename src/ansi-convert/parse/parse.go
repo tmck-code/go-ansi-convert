@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
@@ -133,7 +134,7 @@ func UnicodeStringLength(s string) int {
 		}
 		if ansiCode {
 			// detect the end of an ANSI escape code
-			if r == 'm' {
+			if unicode.IsLetter(r) {
 				currCode += string(r)
 				currCode = ""
 				ansiCode = false
@@ -141,6 +142,9 @@ func UnicodeStringLength(s string) int {
 				currCode += string(r)
 			}
 		} else {
+			if r < 32 {
+				continue
+			}
 			if r < 128 {
 				// if ascii, then use width of 1. this saves some time
 				totalLen++

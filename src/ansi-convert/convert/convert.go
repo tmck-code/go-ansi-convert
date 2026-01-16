@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/mattn/go-runewidth"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
@@ -90,12 +92,14 @@ func SanitiseUnicodeString(s string, justifyLines bool) string {
 
 // ANSILineToken represents a segment of text with its associated ANSI formatting.
 // - FG is the foreground color code
-// - BG is the background color code, and
+// - BG is the background color code
+// - Control is any non-color control code (cursor movement, erase, etc.)
 // - T is the text content.
 type ANSILineToken struct {
-	FG string
-	BG string
-	T  string
+	FG      string
+	BG      string
+	Control string
+	T       string
 }
 
 func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
@@ -115,15 +119,15 @@ func OptimiseANSITokens(lines [][]ANSILineToken) [][]ANSILineToken {
 			if tok.FG == "\x1b[0m" && tok.T == "" {
 				continue
 			}
-			if len(optimisedTokens) > 0 && tok.FG == lastFG && tok.BG == lastBG {
+			if len(optimisedTokens) > 0 && tok.FG == lastFG && tok.BG == lastBG && tok.Control == "" {
 				optimisedTokens[len(optimisedTokens)-1].T += tok.T
 			} else {
 				if tok.FG != lastFG && tok.BG == lastBG {
 					// Only FG changed
-					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: tok.FG, BG: "", T: tok.T})
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: tok.FG, BG: "", Control: tok.Control, T: tok.T})
 				} else if tok.BG != lastBG && tok.FG == lastFG {
 					// Only BG changed
-					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: "", BG: tok.BG, T: tok.T})
+					optimisedTokens = append(optimisedTokens, ANSILineToken{FG: "", BG: tok.BG, Control: tok.Control, T: tok.T})
 				} else {
 					// Both changed or both new
 					optimisedTokens = append(optimisedTokens, tok)
@@ -188,15 +192,16 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					if text != "" {
 						// if we are setting a bg colour, but the last token didn't have one
 						// then add a background clear to the previous bg
-						if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" {
+						// BUT don't do this if the previous token is a control code token
+						if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m]") && tokens[len(tokens)-1].BG == "" && tokens[len(tokens)-1].Control == "" {
 							prevToken := tokens[len(tokens)-1]
-							tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.T}
+							tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.Control, prevToken.T}
 						}
 						if isReset {
-							tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
+							tokens = append(tokens, ANSILineToken{"\x1b[0m", "", "", text})
 							isReset = false
 						} else {
-							tokens = append(tokens, ANSILineToken{fg, bg, text})
+							tokens = append(tokens, ANSILineToken{fg, bg, "", text})
 						}
 						text = ""
 					}
@@ -269,7 +274,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						// When we see a reset, check if there's pending text first
 						if text != "" {
 							// Flush text with current color before reset
-							tokens = append(tokens, ANSILineToken{fg, bg, text})
+							tokens = append(tokens, ANSILineToken{fg, bg, "", text})
 							text = ""
 						}
 						// Track if we had a style modifier before this reset
@@ -286,12 +291,6 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						isReset = false
 					} else {
 					}
-				case 'C':
-					// Cursor forward - translate to spaces
-					isColour = false
-					numSpaces := 0
-					fmt.Sscanf(colour, "\x1b[%dC", &numSpaces)
-					text += strings.Repeat(" ", numSpaces)
 				case 't':
 					// this indicates a "true color" ANSI code in custom format!
 					// Convert from "\x1b[1;R;G;Bt" to "\x1b[38;2;R;G;Bm" (foreground)
@@ -301,7 +300,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 					// If we had a pending reset AND there was a style modifier before it,
 					// we need to output an empty reset token first
 					if isReset && hadStyleBeforeReset {
-						tokens = append(tokens, ANSILineToken{"\x1b[0m", "", ""})
+						tokens = append(tokens, ANSILineToken{"\x1b[0m", "", "", ""})
 						hadStyleBeforeReset = false
 					}
 					isReset = false
@@ -332,17 +331,50 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 							bg = fmt.Sprintf("\x1b[48;2;%s;%s;%sm", r, g, b)
 						}
 					}
-
+				case 'C':
+					// Cursor forward - translate to spaces
+					isColour = false
+					numSpaces := 0
+					fmt.Sscanf(colour, "\x1b[%dC", &numSpaces)
+					log.DebugFprintln("Detected cursor forward ANSI code:", colour, "->", numSpaces, "spaces")
+					text += strings.Repeat(" ", numSpaces)
+					colour = ""
+				case 'J', 'K', 's', 'H', 'u':
+					// Control codes to preserve:
+					// J/K (erase), s (save cursor), H (cursor position), u (restore cursor)
+					// These preserve color state but output the control code in its own token
+					isColour = false
+					log.DebugFprintln("Detected control code:", colour)
+					// If there's accumulated text, create a token with it first
+					if text != "" {
+						// Don't add background reset before control tokens
+						if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m]") && tokens[len(tokens)-1].BG == "" && tokens[len(tokens)-1].Control == "" {
+							prevToken := tokens[len(tokens)-1]
+							tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.Control, prevToken.T}
+						}
+						tokens = append(tokens, ANSILineToken{FG: fg, BG: bg, Control: "", T: text})
+						text = ""
+					}
+					// Create the control code token with no colors
+					tokens = append(tokens, ANSILineToken{FG: "", BG: "", Control: colour, T: ""})
+					colour = ""
+					// Keep fg and bg state - they persist across control codes
 				default:
-					// still in colour code
+					if unicode.IsLetter(ch) {
+						log.DebugFprintln("Unknown ANSI code encountered:", colour, "letter", string(ch))
+						isColour = false
+						colour = ""
+					}
 				}
 			} else {
 				text += string(ch)
 			}
 		}
-		if colour != "" || text != "" {
+		// Only create a final token if there's actual content (colour codes or non-empty text after trimming \r)
+		trimmedText := strings.TrimSuffix(text, "\r")
+		if colour != "" || trimmedText != "" {
 			if isReset {
-				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", text})
+				tokens = append(tokens, ANSILineToken{"\x1b[0m", "", "", trimmedText})
 				isReset = false
 			} else {
 				// Don't replace empty reset tokens - preserve them
@@ -350,11 +382,12 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 				// If we are setting a bg colour, but the last token didn't have one
 				// then add a background clear to the previous bg.
 				// This makes it less of a nightmare to flip horizontally if required.
-				if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" {
+				// BUT don't do this if the previous token is a control code token
+				if bg != "" && len(tokens) > 0 && !strings.Contains(bg, "[49m") && tokens[len(tokens)-1].BG == "" && tokens[len(tokens)-1].Control == "" {
 					prevToken := tokens[len(tokens)-1]
-					tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.T}
+					tokens[len(tokens)-1] = ANSILineToken{prevToken.FG, "\x1b[49m", prevToken.Control, prevToken.T}
 				}
-				tokens = append(tokens, ANSILineToken{fg, bg, text})
+				tokens = append(tokens, ANSILineToken{fg, bg, "", trimmedText})
 			}
 		}
 		if len(tokens) > 0 {
@@ -376,6 +409,7 @@ func BuildANSIString(lines [][]ANSILineToken, padding int) string {
 	for _, tokens := range lines {
 		builder.WriteString(paddingStr) // add padding to the left
 		for _, token := range tokens {
+			builder.WriteString(token.Control)
 			builder.WriteString(token.FG)
 			builder.WriteString(token.BG)
 			builder.WriteString(token.T)
@@ -413,21 +447,22 @@ func FlipHorizontal(lines [][]ANSILineToken) [][]ANSILineToken {
 		// Reverse and mirror tokens
 		for i := len(tokens) - 1; i >= 0; i-- {
 			revTokens = append(revTokens, ANSILineToken{
-				FG: tokens[i].FG,
-				BG: tokens[i].BG,
-				T:  MirrorHorizontally(tokens[i].T),
+				FG:      tokens[i].FG,
+				BG:      tokens[i].BG,
+				Control: tokens[i].Control,
+				T:       MirrorHorizontally(tokens[i].T),
 			})
 		}
 
 		// If padding is needed, prepend it to the first token if colors match, otherwise create new token
 		if padding > 0 {
 			paddingStr := strings.Repeat(" ", padding)
-			if len(revTokens) > 0 && revTokens[0].FG == "" && revTokens[0].BG == "" {
-				// First token has no colors, prepend padding to its text
-				revTokens[0] = ANSILineToken{FG: "", BG: "", T: paddingStr + revTokens[0].T}
+			if len(revTokens) > 0 && revTokens[0].FG == "" && revTokens[0].BG == "" && revTokens[0].Control == "" {
+				// First token has no colors or control codes, prepend padding to its text
+				revTokens[0] = ANSILineToken{FG: "", BG: "", Control: "", T: paddingStr + revTokens[0].T}
 			} else {
-				// First token has colors or no tokens exist, add padding as separate token
-				revTokens = append([]ANSILineToken{{FG: "", BG: "", T: paddingStr}}, revTokens...)
+				// First token has colors/control codes or no tokens exist, add padding as separate token
+				revTokens = append([]ANSILineToken{{FG: "", BG: "", Control: "", T: paddingStr}}, revTokens...)
 			}
 		}
 
@@ -444,7 +479,7 @@ func FlipVertical(lines [][]ANSILineToken) [][]ANSILineToken {
 		mirroredLine := make([]ANSILineToken, len(line))
 		for j, tok := range line {
 			mirroredLine[j] = ANSILineToken{
-				FG: tok.FG, BG: tok.BG, T: MirrorVertically(tok.T),
+				FG: tok.FG, BG: tok.BG, Control: tok.Control, T: MirrorVertically(tok.T),
 			}
 		}
 		flipped[n-1-i] = mirroredLine
@@ -559,11 +594,11 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 
 				// First part goes to current line
 				adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
-					FG: currToken.FG, BG: currToken.BG, T: prefix,
+					FG: currToken.FG, BG: currToken.BG, Control: currToken.Control, T: prefix,
 				})
 				// Remaining part will be processed in next line
 				splitToken = ANSILineToken{
-					FG: currToken.FG, BG: currToken.BG, T: suffix,
+					FG: currToken.FG, BG: currToken.BG, Control: "", T: suffix,
 				}
 				splitTokenExists = true
 				currWidthN = targetWidth // Line is now full
@@ -585,7 +620,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 		}
 		if actualWidth < targetWidth {
 			adjustedLines[currLineN] = append(adjustedLines[currLineN], ANSILineToken{
-				FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth-actualWidth),
+				FG: "\x1b[0m", BG: "\x1b[0m", Control: "", T: strings.Repeat(" ", targetWidth-actualWidth),
 			})
 		}
 
@@ -598,7 +633,7 @@ func AdjustANSILineWidths(lines [][]ANSILineToken, targetWidth int, targetLines 
 	if targetLinesKnown && len(adjustedLines) < targetLines {
 		for i := len(adjustedLines); i < targetLines; i++ {
 			adjustedLines = append(adjustedLines, []ANSILineToken{
-				{FG: "\x1b[0m", BG: "\x1b[0m", T: strings.Repeat(" ", targetWidth)},
+				{FG: "\x1b[0m", BG: "\x1b[0m", Control: "", T: strings.Repeat(" ", targetWidth)},
 			})
 		}
 	}
@@ -684,6 +719,7 @@ func ConvertAns(s string, info SAUCE) string {
 				builder.WriteString("\x1b[0m")
 			}
 
+			builder.WriteString(token.Control)
 			builder.WriteString(fg)
 			builder.WriteString(bg)
 			builder.WriteString(token.T)
