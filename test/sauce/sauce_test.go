@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
@@ -170,7 +171,8 @@ func TestParseValidSAUCE(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, _, err := convert.ParseSAUCE(tc.input)
+			encoding := parse.DetectEncoding(tc.input)
+			result, _, err := convert.ParseSAUCE(tc.input, encoding)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error parsing SAUCE record: %v\n", err)
 				os.Exit(1)
@@ -218,7 +220,8 @@ func TestParseInvalidSAUCE(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, err := convert.ParseSAUCE(tc.input)
+			encoding := parse.DetectEncoding(tc.input)
+			_, _, err := convert.ParseSAUCE(tc.input, encoding)
 			var result string
 			if err != nil {
 				result = err.Error()
@@ -274,11 +277,10 @@ func TestParseSAUCEFiles(t *testing.T) {
 		t.Run(tc.path, func(t *testing.T) {
 			data, err := os.ReadFile(tc.path)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", tc.path, err)
-				os.Exit(1)
+				t.Fatalf("Error reading file %s: %v", tc.path, err)
 			}
-
-			result, _, err := convert.ParseSAUCE(data)
+			encoding := parse.DetectEncoding(data)
+			result, _, err := convert.ParseSAUCE(data, encoding)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error parsing SAUCE from file %s: %v\n", tc.path, err)
 				os.Exit(1)
@@ -345,7 +347,8 @@ func TestParseFileDataWithEncoding(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Error reading file %s: %v\n", tc.path, err)
 			}
-			_, result, err := convert.ParseSAUCE(data)
+			encoding := parse.DetectEncoding(data)
+			_, result, err := convert.ParseSAUCE(data, encoding)
 			if err != nil {
 				t.Fatalf("Error parsing SAUCE from %s: %v\n", tc.path, err)
 			}

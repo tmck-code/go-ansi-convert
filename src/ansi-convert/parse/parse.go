@@ -19,6 +19,7 @@ var (
 // DetectEncoding attempts to determine if file data is CP437 or ISO-8859-1
 // Uses chardet library for detection, with fallback heuristics for ANSI art
 func DetectEncoding(data []byte) string {
+	log.DebugFprintln("\x1b[1;93m> Detecting file encoding\x1b[0m")
 	pointsForCP437, pointsForISO := 0, 0
 
 	// first, try CP437
@@ -29,11 +30,11 @@ func DetectEncoding(data []byte) string {
 	decoder = charmap.ISO8859_1.NewDecoder()
 	ISOTranslated, _ := decoder.Bytes(data)
 	if utf8.Valid(data) {
-		log.DebugFprintln("encoding is UTF-8:")
+		log.DebugFprintln("  \x1b[1mDetected encoding: \x1b[1;92mUTF-8\x1b[0m\n")
 		return "utf-8"
 	}
 
-	// having more of these chars is usually bad
+	// having more of these chars is usually a sign of ISO-8859-1
 	for _, ch := range [][]byte{[]byte("»"), []byte("Ü"), []byte("╖")} {
 		cp437Count := bytes.Count(CP437Translated, ch)
 		isoCount := bytes.Count(ISOTranslated, ch)
@@ -61,7 +62,7 @@ func DetectEncoding(data []byte) string {
 		pointsForISO += 3
 	}
 
-	// having more of these chars is usually good
+	// having more of these chars is usually a sign of CP437
 	for _, ch := range [][]byte{[]byte("█"), []byte("¯"), []byte("░"), []byte("┌")} {
 		cp437Count := bytes.Count(CP437Translated, ch)
 		isoCount := bytes.Count(ISOTranslated, ch)
@@ -76,13 +77,15 @@ func DetectEncoding(data []byte) string {
 	}
 
 	if pointsForCP437 > pointsForISO {
-		log.DebugFprintf("Points:\n- \x1b[92mCP437\x1b[0m:      %d\n- ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n    - \x1b[92mCP437\x1b[0m:      %d\n    - ISO-8859-1: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;92mCP437\x1b[0m\n\n")
 		return "cp437"
 	} else if pointsForISO > pointsForCP437 {
-		log.DebugFprintf("Points:\n- CP437:      %d\n- \x1b[92mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mPoints:\x1b[0m\n    - CP437:      %d\n    - \x1b[92mISO-8859-1\x1b[0m: %d\n", pointsForCP437, pointsForISO)
+		log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;92mISO-8859-1\x1b[0m\n\n")
 		return "iso-8859-1"
 	}
-	log.DebugFprintln("Unable to detect encoding, assuming ASCII")
+	log.DebugFprintf("  \x1b[1mDetected encoding: \x1b[1;93mASCII\x1b[0m (fallback)\n\n")
 	return "ascii"
 }
 

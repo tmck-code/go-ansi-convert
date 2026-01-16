@@ -134,9 +134,9 @@ func TestConvertAnsFiles(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to read input file: %v", err)
 			}
-			sauce, input, err := convert.ParseSAUCE(data)
+			encoding := parse.DetectEncoding(data)
+			sauce, input, err := convert.ParseSAUCE(data, encoding)
 			if err != nil {
-				encoding := parse.DetectEncoding(data)
 				decodedData, decodeErr := parse.DecodeFileContents(data, encoding)
 				if decodeErr != nil {
 					t.Fatalf("Failed to parse SAUCE or decode file data: %v", err)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/convert"
+	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 	"github.com/tmck-code/go-ansi-convert/test"
 )
 
@@ -516,7 +517,8 @@ func TestTokeniseANSIFile(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
 			}
-			_, data, err := convert.ParseSAUCE(fileData)
+			encoding := parse.DetectEncoding(fileData)
+			_, data, err := convert.ParseSAUCE(fileData, encoding)
 			if err != nil {
 				t.Fatalf("Failed to read test file %s: %v", tc.filepath, err)
 			}

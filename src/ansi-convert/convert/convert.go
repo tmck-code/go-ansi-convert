@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/mattn/go-runewidth"
-	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/log"
 	"github.com/tmck-code/go-ansi-convert/src/ansi-convert/parse"
 )
 
@@ -701,7 +700,7 @@ func ConvertAns(s string, info SAUCE) string {
 		if lineIdx < len(lines)-1 {
 			builder.WriteString("\x1b[0m\n")
 		} else {
-			log.DebugFprintf("Has trailing newline: %v\n", hasTrailingNewline)
+			// log.DebugFprintf("Has trailing newline: %v\n", hasTrailingNewline)
 			if hasTrailingNewline || lineIdx <= fileLines-1 {
 				builder.WriteString("\x1b[0m\n")
 			} else {
