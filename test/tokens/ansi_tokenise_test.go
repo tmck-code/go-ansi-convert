@@ -229,7 +229,6 @@ func TestANSITokenise(t *testing.T) {
 					{FG: "\x1b[30m", BG: "\x1b[48;2;168;48;76m", T: "â"},
 					{FG: "\x1b[38;2;144;16;64m", BG: "\x1b[40m", T: "â\"¯¯\""},
 					{FG: "\x1b[30m", BG: "\x1b[48;2;168;48;76m", T: "x"},
-					{FG: "\x1b[0m", BG: "", T: ""},
 				},
 			},
 		},
