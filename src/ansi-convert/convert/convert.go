@@ -152,6 +152,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 	isReset := false
 	fg := ""
 	bg := ""
+	baseFG := ""                 // Track base FG color without bold
 	styleModifier := ""          // Track style modifiers like \x1b[1m (bold)
 	hadStyleBeforeReset := false // Track if there was a style modifier before the last reset
 	lines := make([][]ANSILineToken, 0)
@@ -167,6 +168,7 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 		colour := ""
 		isReset = false    // Clear reset state at start of each line
 		styleModifier = "" // Clear style modifier at start of each line
+		baseFG = ""        // Clear base FG at start of each line
 
 		for _, ch := range line {
 			switch ch {
@@ -226,10 +228,14 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						fgCode := ""
 						bgCode := ""
 						hasReset := false
+						hasBold := false
 
 						for _, part := range parts {
 							if part == "0" {
 								hasReset = true
+							} else if part == "1" {
+								// Bold/bright style modifier
+								hasBold = true
 							} else if len(part) >= 2 {
 								// Check for FG codes (30-37, 90-97)
 								if (part[0] == '3' && part[1] >= '0' && part[1] <= '7') ||
@@ -248,16 +254,31 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 
 						// If it has both FG and BG codes, split them into separate codes
 						if hasFG && hasBG {
-							fg = "\x1b[" + fgCode + "m"
+							baseFG = "\x1b[" + fgCode + "m"
+							if hasBold {
+								fg = "\x1b[1m" + baseFG
+							} else {
+								fg = baseFG
+							}
 							bg = "\x1b[" + bgCode + "m"
 						} else if hasFG {
-							fg = colour
+							baseFG = "\x1b[" + fgCode + "m"
+							if hasBold {
+								fg = "\x1b[1m" + baseFG
+							} else {
+								fg = colour
+							}
 						} else if hasBG {
+							// BG-only change: use base FG without bold
+							if baseFG != "" {
+								fg = baseFG
+							}
 							bg = colour
 						} else if hasReset {
 							isReset = true
 							fg = ""
 							bg = ""
+							baseFG = ""
 							colour = ""
 						}
 					} else if strings.Contains(colour, "[3") || strings.Contains(colour, "[9") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
@@ -265,10 +286,15 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						// Clear the reset flag - we're setting a new color
 						isReset = false
 						fg = colour
+						baseFG = colour
 					} else if strings.Contains(colour, "[4") || strings.Contains(colour, "[10") && (colour[len(colour)-2] >= '0' && colour[len(colour)-2] <= '7') {
 						// 40m > 47m
 						// Clear the reset flag - we're setting a new color
+						// BG-only change: use base FG without bold
 						isReset = false
+						if baseFG != "" {
+							fg = baseFG
+						}
 						bg = colour
 					} else if strings.Contains(colour, "[0m") {
 						// When we see a reset, check if there's pending text first
@@ -283,8 +309,9 @@ func TokeniseANSIString(msg string) [][]ANSILineToken {
 						// It will be output with the NEXT text, not as an empty token
 						// (unless another color code appears first, in which case we output it)
 						isReset = true
-						fg, bg, colour = "", "", ""
-						styleModifier = "" // Clear style modifier on reset
+					fg, bg, colour = "", "", ""
+					baseFG = ""
+					styleModifier = "" // Clear style modifier on reset
 					} else if colour == "\x1b[1m" {
 						// Bold/bright text style modifier - keep as separate modifier
 						styleModifier = colour

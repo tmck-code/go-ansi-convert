@@ -36,7 +36,7 @@ func TestConvertCursorCodes(t *testing.T) {
 			expected: [][]convert.ANSILineToken{
 				{
 					{FG: "", BG: "\x1b[40m", Control: "", T: "                                "},
-					{FG: "\x1b[0;1;34m", BG: "\x1b[40m", Control: "", T: "Spa"},
+					{FG: "\x1b[1m\x1b[34m", BG: "\x1b[40m", Control: "", T: "Spa"},
 					{FG: "\x1b[35m", BG: "\x1b[40m", Control: "", T: "ce: "},
 					{FG: "\x1b[32m", BG: "\x1b[40m", Control: "", T: "212 "},
 					{FG: "\x1b[33m", BG: "\x1b[40m", Control: "", T: "Megs"},
@@ -63,9 +63,9 @@ func TestConvertCursorCodes(t *testing.T) {
 					{FG: "\x1b[37m", BG: "\x1b[40m", Control: "", T: "Chat     ▄▄▄       "},
 					{FG: "\x1b[31m", BG: "\x1b[40m", Control: "", T: "█    ▄▄▄"},
 					{FG: "\x1b[0;31m", BG: "\x1b[40m", Control: "", T: "▄▄"},
-					{FG: "\x1b[1;30m", BG: "\x1b[40m", Control: "", T: "▄"},
+					{FG: "\x1b[1m\x1b[30m", BG: "\x1b[40m", Control: "", T: "▄"},
 					{FG: "", BG: "", Control: "\x1b[4H", T: ""},
-					{FG: "\x1b[1;30m", BG: "\x1b[40m", Control: "", T: " "},
+					{FG: "\x1b[1m\x1b[30m", BG: "\x1b[40m", Control: "", T: " "},
 					{FG: "\x1b[32m", BG: "\x1b[40m", Control: "", T: "▄█████████████"},
 					{FG: "", BG: "", Control: "\x1b[s", T: ""},
 				},
